@@ -1,0 +1,11 @@
+{
+  "name": "pin-by-pin",
+  "private": true,
+  "description": "Dev-only checks for the Pin by Pin lessons. The site is index.html and needs no build.",
+  "scripts": {
+    "test": "node test/smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  }
+}
