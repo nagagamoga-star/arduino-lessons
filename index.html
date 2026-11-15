@@ -928,7 +928,7 @@ void loop() {
 /* ---------- Simulation state ---------- */
 const STOP = { stop: true };
 const sim = { pins: [], tone: null, servos: {}, stepper: null, lcd: null, serialStarted: false, warned: new Set(), txFlash: -1e9, ping: -1e9, trigFired: false, inputs: [], pressed: [] };
-let runToken = 0, startTime = performance.now(), lastYield = 0, parts = [], lessonIdx = 0;
+let runToken = 0, startTime = performance.now(), lastYield = 0, parts = [], lessonIdx = 0, editorReady = false, saveTimer = null;
 let actx = null, osc = null, gainNode = null, soundOn = store.get('sound', true);
 
 function resetSim(){
@@ -1615,7 +1615,14 @@ function renderNotes(){
 
 function savedCode(i){ const all = store.get('code', {}); return all[i]; }
 function saveCode(){ const all = store.get('code', {}); all[lessonIdx] = codeEl.value; store.set('code', all); }
+// The editor debounce waits 400ms. Leaving a lesson, or pressing Run, must not wait with it.
+function flushSketch(){
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (editorReady) saveCode();
+}
 function openLesson(i, scroll){
+  flushSketch();
   stop();
   lessonIdx = Math.max(0, Math.min(LESSONS.length - 1, i));
   store.set('last', lessonIdx);
@@ -1623,6 +1630,7 @@ function openLesson(i, scroll){
   resetSim(); buildInputs(); buildStage(); renderNotes(); buildRail();
   const sc = savedCode(lessonIdx);
   codeEl.value = sc !== undefined ? sc : LESSONS[lessonIdx].code;
+  editorReady = true;
   document.getElementById('saveMeta').textContent = sc !== undefined && sc !== LESSONS[lessonIdx].code ? 'Your edits' : 'Ctrl + Enter runs';
   if (scroll) window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   run();
@@ -1636,18 +1644,17 @@ document.getElementById('rail').addEventListener('click', e => { const b = e.tar
 document.getElementById('lessonSelect').addEventListener('change', e => { ensureAudio(); go(+e.target.value, false); });
 document.getElementById('prevBtn').onclick = () => { ensureAudio(); go(lessonIdx - 1, false); };
 document.getElementById('nextBtn').onclick = () => { ensureAudio(); go(lessonIdx + 1, false); };
-document.getElementById('runBtn').onclick = () => run();
+document.getElementById('runBtn').onclick = () => { flushSketch(); run(); };
 document.getElementById('stopBtn').onclick = () => stop();
 document.getElementById('clearBtn').onclick = () => clearSerial();
-document.getElementById('resetBtn').onclick = () => { codeEl.value = LESSONS[lessonIdx].code; saveCode(); document.getElementById('saveMeta').textContent = 'Starter code restored'; run(); };
+document.getElementById('resetBtn').onclick = () => { codeEl.value = LESSONS[lessonIdx].code; flushSketch(); document.getElementById('saveMeta').textContent = 'Starter code restored'; run(); };
 const soundBtn = document.getElementById('soundBtn');
 function paintSound(){ soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; soundBtn.setAttribute('aria-pressed', soundOn); }
 soundBtn.onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); paintSound(); if (soundOn){ ensureAudio(); if (sim.tone && partOn(q => q.type === 'buzzer' && q.pin === sim.tone.pin) >= 0) audioTone(sim.tone.freq); } else audioOff(); };
 paintSound();
-let saveTimer = null;
 codeEl.addEventListener('input', () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveCode(); document.getElementById('saveMeta').textContent = 'Your edits · press Run'; }, 400); });
 codeEl.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); saveCode(); run(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); flushSketch(); run(); return; }
   if (e.key === 'Tab' && !e.shiftKey){ e.preventDefault(); const a = codeEl.selectionStart, b = codeEl.selectionEnd; codeEl.setRangeText('  ', a, b, 'end'); codeEl.dispatchEvent(new Event('input')); }
 });
 document.addEventListener('pointerdown', () => ensureAudio(), { once: true });
