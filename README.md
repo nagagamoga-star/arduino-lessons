@@ -17,3 +17,7 @@ The simulator runs a beginner-sized subset of Arduino C++, so timing is approxim
 ## Tests
 
 `npm test` serves this folder and runs every starter sketch in headless Chrome. That needs the dev dependency in `package.json`. The site itself is still `index.html`, and GitHub Pages does not run a build.
+
+## Licence
+
+MIT, copyright 2026 Naga Gamoga. See [LICENSE](LICENSE).
