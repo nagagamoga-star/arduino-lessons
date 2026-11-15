@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pin by Pin</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="16x16">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -658,7 +660,7 @@ void loop() {
   ideas: [
     "`#include` adds a library to the sketch.",
     "`Servo arm;` creates a servo, `arm.attach(pin)` connects it, and `arm.write(angle)` moves it.",
-    "The Servo library uses the timer behind pins 9 and 10, so `analogWrite()` on those pins stops working while a servo is attached."
+    "The Servo library uses the timer behind pins 9 and 10, so `analogWrite()` on those pins does nothing while a servo is attached. After `detach()`, PWM on 9 and 10 works again."
   ],
   kit: ['SG90 micro servo'],
   parts: [{ type: 'servo', pin: 3 }],
@@ -867,7 +869,7 @@ void loop() {
   ideas: [
     "`return` sends a value back from a function to wherever it was called.",
     "`else if` checks a second condition when the first one fails.",
-    "`tone()` borrows the timer behind PWM on pins 3 and 11, so the blue leg uses pin 5 here."
+    "`tone()` borrows the timer behind PWM on pins 3 and 11, so the blue leg uses pin 5 here. `analogWrite()` on 3 and 11 does nothing until `noTone()`."
   ],
   kit: ['HC-SR04 ultrasonic sensor', 'RGB LED (common cathode)', '3 × 220 Ω resistors', 'Passive piezo buzzer'],
   parts: [{ type: 'ultra', trig: 7, echo: 6 }, { type: 'rgb', pins: [9, 10, 5] }, { type: 'buzzer', pin: 8 }],
@@ -928,7 +930,7 @@ void loop() {
 /* ---------- Simulation state ---------- */
 const STOP = { stop: true };
 const sim = { pins: [], tone: null, servos: {}, stepper: null, lcd: null, serialStarted: false, warned: new Set(), txFlash: -1e9, ping: -1e9, trigFired: false, inputs: [], pressed: [] };
-let runToken = 0, startTime = performance.now(), lastYield = 0, parts = [], lessonIdx = 0;
+let runToken = 0, startTime = performance.now(), lastYield = 0, parts = [], lessonIdx = 0, editorReady = false, saveTimer = null;
 let actx = null, osc = null, gainNode = null, soundOn = store.get('sound', true);
 
 function resetSim(){
@@ -966,9 +968,23 @@ function digitalWrite(p, v){
   if (s.mode !== OUTPUT) warnOnce('dw' + p, `pin ${p} isn't set as an output, so the LED glows only faintly. Add pinMode(${p}, OUTPUT); to setup().`);
   if (v && partOn(q => q.type === 'ultra' && q.trig === p) >= 0) sim.trigFired = true;
 }
+function servoTimerBusy(){
+  for (const k in sim.servos){ const sv = sim.servos[k]; if (sv && sv.pin >= 0) return true; }
+  return false;
+}
 function analogWrite(p, v){
   p = normPin(p); const s = sim.pins[p]; if (!s) return;
-  v = Math.max(0, Math.min(255, Math.trunc(+v) || 0)); s.mode = OUTPUT;
+  v = Math.max(0, Math.min(255, Math.trunc(+v) || 0));
+  // Uno timers: Servo occupies Timer1 (PWM on 9 and 10); tone() occupies Timer2 (PWM on 3 and 11).
+  if ((p === 9 || p === 10) && servoTimerBusy()){
+    warnOnce('servo-pwm', 'analogWrite() on pins 9 and 10 does nothing while a servo is attached. That timer is busy. Call detach() and PWM on those pins works again.');
+    return;
+  }
+  if ((p === 3 || p === 11) && sim.tone){
+    warnOnce('tone-pwm', 'analogWrite() on pins 3 and 11 does nothing while tone() is playing. That timer is busy. Call noTone() and PWM on those pins works again.');
+    return;
+  }
+  s.mode = OUTPUT;
   if (PWM_PINS.includes(p)) { s.pwm = v; s.out = v > 0 ? 1 : 0; }
   else { s.pwm = null; s.out = v >= 128 ? 1 : 0; warnOnce('aw' + p, `pin ${p} can't fade. analogWrite() only dims on ~ pins: 3, 5, 6, 9, 10 and 11. Other pins just switch fully on (128 or more) or off.`); }
 }
@@ -1118,19 +1134,10 @@ function transpile(src){
   });
 
   const intVars = new Set();
-  s = s.replace(R(String.raw`(?:const\s+)?${ANY_T}\s+(\w+)\s*\[[^\]]*\]\s*=\s*\{([^}]*)\}`), 'let $1 = [$2]');
-  s = s.replace(R(String.raw`(?:const\s+)?${ANY_T}\s+(\w+)\s*\[\s*([^\]]+)\]\s*;`), 'let $1 = new Array($2).fill(0);');
-  s = s.replace(R(String.raw`\bconst\s+${INT_T}\s+(\w+)\s*=\s*([^;]+);`), (m, n, v) => { intVars.add(n); return `const ${n} = __int(${v});`; });
-  s = s.replace(R(String.raw`\bconst\s+(?:${FLT_T}|${OTH_T})\s+(\w+)\s*(?:\[\s*\])?\s*=`), 'const $1 =');
-  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*${INT_T}\s+(\w+)\s*=\s*([^;]+);`), (m, pre, n, v) => { intVars.add(n); return `${pre}let ${n} = __int(${v});`; });
-  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*${INT_T}\s+(\w+)\s*;`), (m, pre, n) => { intVars.add(n); return `${pre}let ${n} = 0;`; });
-  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*${FLT_T}\s+(\w+)\s*;`), '$1let $2 = 0;');
-  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+)*(?:bool|boolean)\s+(\w+)\s*;`), '$1let $2 = false;');
-  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+)*String\s+(\w+)\s*;`), '$1let $2 = "";');
-  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+)*char\s+(\w+)\s*;`), '$1let $2 = 0;');
-  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*(?:${FLT_T}|${OTH_T})\s+(\w+)\s*(?:\[\s*\])?\s*=`), '$1let $2 =');
+  s = rewriteDecls(s, intVars);
   for (const n of intVars){
-    s = s.replace(R(String.raw`(?<![\w.])(?<!let\s)(?<!const\s)${n}\s*=(?!=)\s*([^;]+);`), `${n} = __int($1);`);
+    // Skip the declaration itself (`let a = …, b = …`) so only later assignments truncate.
+    s = s.replace(R(String.raw`(?<![\w.])(?<!let\s)(?<!const\s)(?<!,\s*)${n}\s*=(?!=)\s*([^;]+);`), `${n} = __int($1);`);
   }
   for (const n of ['delay', 'delayMicroseconds', ...fns]){
     s = s.replace(R(String.raw`(?<![\w.])(?<!function\s)${n}\s*\(`), `await ${n}(`);
@@ -1141,32 +1148,152 @@ function transpile(src){
   s = s.replace(/__S(\d+)__/g, (m, i) => strs[+i]);
   return { js: s, fns };
 }
+function splitTop(list, sep){
+  const parts = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < list.length; i++){
+    const c = list[i];
+    if (c === '(' || c === '[' || c === '{') depth++;
+    else if (c === ')' || c === ']' || c === '}') depth--;
+    else if (c === sep && depth === 0){ parts.push(list.slice(start, i)); start = i + 1; }
+  }
+  parts.push(list.slice(start));
+  return parts;
+}
+// One C++ declaration can name several variables. Each one becomes its own binding,
+// so `int a = 1, b = 2` is not an assignment that leaks `b` onto the global object.
+function rewriteDecls(s, intVars){
+  const re = new RegExp(String.raw`(^|[^\w.])((?:(?:const|static|volatile|inline)\s+)*)(${INT_T}|${FLT_T}|${OTH_T})\s+([^;]+);`, 'g');
+  return s.replace(re, (m, pre, quals, type, rest) => {
+    const isInt = new RegExp(`^(?:${INT_T})$`).test(type);
+    const kind = /^(?:bool|boolean)$/.test(type) ? 'bool' : type === 'String' ? 'string' : type === 'char' ? 'char' : isInt ? 'int' : 'float';
+    const keyword = /\bconst\b/.test(quals) ? 'const' : 'let';
+    const bits = splitTop(rest, ',').map(raw => {
+      const d = raw.trim();
+      if (!d) return '';
+      const am = /^([A-Za-z_]\w*)\s*(\[[^\]]*\])?\s*(?:=\s*([\s\S]*))?$/.exec(d);
+      if (!am) return d;
+      const name = am[1], arr = am[2], init = am[3] != null ? am[3].trim() : null;
+      if (arr){
+        if (init && init.startsWith('{')) return `${name} = [${init.slice(1, -1)}]`;
+        if (init) return `${name} = ${init}`;
+        const n = /^\[\s*\]$/.test(arr) ? '0' : (arr.slice(1, -1).trim() || '0');
+        return `${name} = new Array(${n}).fill(0)`;
+      }
+      if (kind === 'int') intVars.add(name);
+      if (init == null){
+        const zero = kind === 'bool' ? 'false' : kind === 'string' ? '""' : '0';
+        return `${name} = ${kind === 'int' ? `__int(${zero})` : zero}`;
+      }
+      return kind === 'int' ? `${name} = __int(${init})` : `${name} = ${init}`;
+    }).filter(Boolean);
+    return `${pre}${keyword} ${bits.join(', ')};`;
+  });
+}
 // The real compiler refuses a missing semicolon, so the simulator does too.
 function checkSemicolons(s){
-  const lines = s.split('\n'); let depth = 0;
+  const lines = s.split('\n');
+  let depth = 0;
+  const fail = (n, t) => {
+    const shown = t.replace(/__S\d+__/g, '"…"');
+    throw new SyntaxError(`Line ${n + 1} is missing a semicolon (;) at the end of a statement: ${shown}`);
+  };
+  // Text after the header of if / for / while / else / do. Null when the line isn't one of those.
+  const controlBody = line => {
+    let t = line.trim();
+    if (t.startsWith('}')) t = t.slice(1).trim();
+    const head = /^(?:else\s+if|if|for|while|else|do)\b/.exec(t);
+    if (!head) return null;
+    const kw = head[0];
+    if (kw === 'else' || kw === 'do') return t.slice(head[0].length).trim();
+    let i = head[0].length;
+    while (i < t.length && /\s/.test(t[i])) i++;
+    if (t[i] !== '(') return t.slice(i).trim();
+    let d = 0;
+    for (; i < t.length; i++){
+      if (t[i] === '(') d++;
+      else if (t[i] === ')'){ d--; if (d === 0){ i++; break; } }
+    }
+    return t.slice(i).trim();
+  };
+  const needsSemi = rest => rest && !rest.startsWith('{') && !/;\s*$/.test(rest);
   for (let n = 0; n < lines.length; n++){
     const t = lines[n].trim();
     const startDepth = depth;
     for (const ch of t){ if (ch === '(') depth++; else if (ch === ')') depth--; }
-    if (!t || t.startsWith('#') || startDepth > 0 || depth > 0) continue;
-    let next = ''; for (let k = n + 1; k < lines.length; k++){ if (lines[k].trim()){ next = lines[k].trim(); break; } }
-    const kw = /^(if|else|for|while|do|switch|case|default)\b/.test(t) || /^\}\s*else\b/.test(t);
-    const bad = /[\w)\]]$/.test(t) && !kw && !/^[{.+\-*\/%&|?:<>=)]/.test(next) && !/^(else)\b/.test(next);
-    const inner = /[\w)\]]\s*\}\s*$/.test(t) && !/=\s*\{/.test(t) && /\{/.test(t);
-    if (bad || inner){
-      const shown = t.replace(/__S\d+__/g, '"…"');
-      throw new SyntaxError(`Line ${n + 1} is missing a semicolon (;) at the end of a statement: ${shown}`);
+    if (!t || t.startsWith('#')) continue;
+    if (startDepth > 0 && depth > 0) continue;
+    // A for/while header that began on an earlier line can still carry its statement here.
+    if (startDepth > 0 && depth === 0){
+      let d = startDepth, cut = t.length;
+      for (let i = 0; i < t.length; i++){
+        if (t[i] === '(') d++;
+        else if (t[i] === ')'){ d--; if (d === 0){ cut = i + 1; break; } }
+      }
+      if (needsSemi(t.slice(cut).trim())) fail(n, t);
+      continue;
     }
+    if (depth > 0) continue;
+    const body = controlBody(t);
+    if (body !== null){
+      if (needsSemi(body)) fail(n, t);
+      continue;
+    }
+    let next = '';
+    for (let k = n + 1; k < lines.length; k++){ if (lines[k].trim()){ next = lines[k].trim(); break; } }
+    const bad = /[\w)\]]$/.test(t) && !/^[{.+\-*\/%&|?:<>=)]/.test(next) && !/^(else)\b/.test(next);
+    const inner = /[\w)\]]\s*\}\s*$/.test(t) && !/=\s*\{/.test(t) && /\{/.test(t);
+    if (bad || inner) fail(n, t);
   }
 }
+function isDoWhileCondition(s, index){
+  let i = index - 1;
+  while (i >= 0 && /\s/.test(s[i])) i--;
+  return s[i] === '}';
+}
+function statementEnd(s, k){
+  let p = 0, b = 0, r = 0;
+  for (let e = k; e < s.length; e++){
+    const c = s[e];
+    if (c === '(') p++;
+    else if (c === ')') p--;
+    else if (c === '{') b++;
+    else if (c === '}'){ if (b === 0 && p === 0 && r === 0) return e; b--; }
+    else if (c === '[') r++;
+    else if (c === ']') r--;
+    else if (c === ';' && p === 0 && b === 0 && r === 0) return e + 1;
+  }
+  return s.length;
+}
+// Every for/while body awaits, with or without braces, so a tight loop can't freeze the tab.
 function injectTicks(s){
-  let out = '', last = 0; const re = /\b(while|for)\s*\(/g; let m;
+  let out = '', last = 0;
+  const re = /\b(while|for)\s*\(/g;
+  let m;
   while ((m = re.exec(s))){
+    if (m[1] === 'while' && isDoWhileCondition(s, m.index)){
+      re.lastIndex = m.index + m[0].length;
+      continue;
+    }
     let j = m.index + m[0].length, depth = 1;
     while (j < s.length && depth){ if (s[j] === '(') depth++; else if (s[j] === ')') depth--; j++; }
-    let k = j; while (k < s.length && /\s/.test(s[k])) k++;
-    if (s[k] === '{'){ out += s.slice(last, k + 1) + ' await __tick();'; last = k + 1; re.lastIndex = k + 1; }
-    else if (s[k] === ';'){ out += s.slice(last, k) + ' { await __tick(); }'; last = k + 1; re.lastIndex = k + 1; }
+    let k = j;
+    while (k < s.length && /\s/.test(s[k])) k++;
+    if (s[k] === '{'){
+      out += s.slice(last, k + 1) + ' await __tick();';
+      last = k + 1;
+      re.lastIndex = k + 1;
+    } else if (s[k] === ';'){
+      out += s.slice(last, k) + ' { await __tick(); }';
+      last = k + 1;
+      re.lastIndex = k + 1;
+    } else {
+      const e = statementEnd(s, k);
+      const stmt = injectTicks(s.slice(k, e));
+      out += s.slice(last, j) + ' { await __tick(); ' + stmt + ' }';
+      last = e;
+      re.lastIndex = e;
+    }
   }
   return out + s.slice(last);
 }
@@ -1195,7 +1322,8 @@ async function run(){
   let factory;
   try {
     const { js } = transpile(codeEl.value);
-    const body = js + '\n;return { setup: typeof setup === "function" ? setup : null, loop: typeof loop === "function" ? loop : null };';
+    // Strict mode so a missed declarator can't become a global on window.
+    const body = '"use strict";\n' + js + '\n;return { setup: typeof setup === "function" ? setup : null, loop: typeof loop === "function" ? loop : null };';
     const keys = Object.keys(API);
     factory = { keys, fn: new AsyncFunction(...keys, '__tick', body) };
   } catch (e) {
@@ -1615,7 +1743,14 @@ function renderNotes(){
 
 function savedCode(i){ const all = store.get('code', {}); return all[i]; }
 function saveCode(){ const all = store.get('code', {}); all[lessonIdx] = codeEl.value; store.set('code', all); }
+// The editor debounce waits 400ms. Leaving a lesson, or pressing Run, must not wait with it.
+function flushSketch(){
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (editorReady) saveCode();
+}
 function openLesson(i, scroll){
+  flushSketch();
   stop();
   lessonIdx = Math.max(0, Math.min(LESSONS.length - 1, i));
   store.set('last', lessonIdx);
@@ -1623,6 +1758,7 @@ function openLesson(i, scroll){
   resetSim(); buildInputs(); buildStage(); renderNotes(); buildRail();
   const sc = savedCode(lessonIdx);
   codeEl.value = sc !== undefined ? sc : LESSONS[lessonIdx].code;
+  editorReady = true;
   document.getElementById('saveMeta').textContent = sc !== undefined && sc !== LESSONS[lessonIdx].code ? 'Your edits' : 'Ctrl + Enter runs';
   if (scroll) window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   run();
@@ -1636,18 +1772,17 @@ document.getElementById('rail').addEventListener('click', e => { const b = e.tar
 document.getElementById('lessonSelect').addEventListener('change', e => { ensureAudio(); go(+e.target.value, false); });
 document.getElementById('prevBtn').onclick = () => { ensureAudio(); go(lessonIdx - 1, false); };
 document.getElementById('nextBtn').onclick = () => { ensureAudio(); go(lessonIdx + 1, false); };
-document.getElementById('runBtn').onclick = () => run();
+document.getElementById('runBtn').onclick = () => { flushSketch(); run(); };
 document.getElementById('stopBtn').onclick = () => stop();
 document.getElementById('clearBtn').onclick = () => clearSerial();
-document.getElementById('resetBtn').onclick = () => { codeEl.value = LESSONS[lessonIdx].code; saveCode(); document.getElementById('saveMeta').textContent = 'Starter code restored'; run(); };
+document.getElementById('resetBtn').onclick = () => { codeEl.value = LESSONS[lessonIdx].code; flushSketch(); document.getElementById('saveMeta').textContent = 'Starter code restored'; run(); };
 const soundBtn = document.getElementById('soundBtn');
 function paintSound(){ soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; soundBtn.setAttribute('aria-pressed', soundOn); }
 soundBtn.onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); paintSound(); if (soundOn){ ensureAudio(); if (sim.tone && partOn(q => q.type === 'buzzer' && q.pin === sim.tone.pin) >= 0) audioTone(sim.tone.freq); } else audioOff(); };
 paintSound();
-let saveTimer = null;
 codeEl.addEventListener('input', () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveCode(); document.getElementById('saveMeta').textContent = 'Your edits · press Run'; }, 400); });
 codeEl.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); saveCode(); run(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); flushSketch(); run(); return; }
   if (e.key === 'Tab' && !e.shiftKey){ e.preventDefault(); const a = codeEl.selectionStart, b = codeEl.selectionEnd; codeEl.setRangeText('  ', a, b, 'end'); codeEl.dispatchEvent(new Event('input')); }
 });
 document.addEventListener('pointerdown', () => ensureAudio(), { once: true });

@@ -14,6 +14,10 @@ The whole site is one file, `index.html`. Open it directly or serve it with GitH
 
 The simulator runs a beginner-sized subset of Arduino C++, so timing is approximate. Check each part's datasheet before wiring real hardware.
 
+## Tests
+
+`npm test` serves this folder and runs every starter sketch in headless Chrome. That needs the dev dependency in `package.json`. The site itself is still `index.html`, and GitHub Pages does not run a build.
+
 ## Licence
 
 MIT, copyright 2026 Naga Gamoga. See [LICENSE](LICENSE).
