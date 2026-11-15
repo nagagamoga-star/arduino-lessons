@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pin by Pin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: lesson rail | notes column + sticky lab column (board, sketch, serial). Stacks to one column on phones, lab first. */
+  --bg:#edf2f1; --surface:#ffffff; --surface-2:#f4f8f7; --ink:#14232a; --muted:#566870; --line:#d3dedd;
+  --accent:#0b7479; --accent-ink:#ffffff; --accent-soft:#d9eeee; --copper:#b45d1c;
+  --ok:#1c8f4e; --bad:#c2352f; --tip:#9a6a12;
+  --mat:#dfe8e6; --rail-gnd:#2a3238; --lead:#8d979e;
+  --code-bg:#0f1a1e; --code-ink:#d6e5e4; --code-muted:#7f9699;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c1417; --surface:#132026; --surface-2:#172730; --ink:#e1ebeb; --muted:#93a8ad; --line:#24363d;
+    --accent:#3dbdb9; --accent-ink:#04201f; --accent-soft:#163b3c; --copper:#e39a55;
+    --ok:#4cc98a; --bad:#f07a72; --tip:#e2b44f;
+    --mat:#18282e; --rail-gnd:#a9b8bd; --lead:#7d8a90;
+    --code-bg:#091114; --code-ink:#d6e5e4; --code-muted:#6f878a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c1417; --surface:#132026; --surface-2:#172730; --ink:#e1ebeb; --muted:#93a8ad; --line:#24363d;
+  --accent:#3dbdb9; --accent-ink:#04201f; --accent-soft:#163b3c; --copper:#e39a55;
+  --ok:#4cc98a; --bad:#f07a72; --tip:#e2b44f;
+  --mat:#18282e; --rail-gnd:#a9b8bd; --lead:#7d8a90;
+  --code-bg:#091114; --code-ink:#d6e5e4; --code-muted:#6f878a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--f-body);-webkit-text-size-adjust:100%}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.15;text-wrap:balance;margin:0}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--accent-soft);color:var(--ink);padding:.08em .35em;border-radius:4px;white-space:nowrap}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Header */
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px max(16px,3vw);border-bottom:1px solid var(--line);background:var(--surface)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand svg{flex:none}
+.brand-name{font-family:var(--f-display);font-weight:700;font-size:1.3rem;letter-spacing:.01em}
+.brand-sub{color:var(--muted);font-size:.86rem}
+.progress{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:.86rem;color:var(--muted)}
+.bar{width:120px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+
+/* Shell */
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:0;max-width:1480px;margin:0 auto}
+.rail{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:18px 12px 30px 16px;border-right:1px solid var(--line)}
+.rail h2{font-family:var(--f-body);font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:16px 8px 6px}
+.rail h2:first-child{margin-top:0}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.rail button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:26px 1fr 16px;align-items:center;gap:6px;width:100%;padding:7px 8px;border-radius:7px;cursor:pointer;font-size:.92rem;line-height:1.25}
+.rail button:hover{background:var(--surface-2)}
+.rail button:focus-visible{outline:2px solid var(--accent)}
+.rail button[aria-current="true"]{background:var(--accent-soft);font-weight:600}
+.rail .num{font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+.rail .tick{color:var(--ok);opacity:0}
+.rail .done .tick{opacity:1}
+
+main{padding:22px max(16px,2.4vw) 40px;min-width:0}
+.head{display:grid;gap:8px;margin-bottom:18px}
+.eyebrow{font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.head h1{font-size:clamp(1.7rem,3.2vw,2.4rem)}
+.head p{margin:0;color:var(--muted);max-width:62ch}
+.head-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.picker{display:none}
+.picker select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);max-width:100%}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:start}
+.notes,.lab{display:grid;gap:16px;min-width:0}
+.lab{position:sticky;top:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.card h2{font-size:1.15rem;margin-bottom:10px}
+.card h3{font-family:var(--f-body);font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.prose p{margin:0 0 10px;max-width:65ch}
+.prose ul{margin:0;padding-left:1.1em;display:grid;gap:6px}
+.kit{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:0;list-style:none}
+.kit li{font-size:.84rem;padding:3px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.wtable{width:100%;border-collapse:collapse;font-size:.9rem}
+.wtable th{text-align:left;font-weight:600;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+.wtable td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.wtable td:first-child{white-space:nowrap;font-weight:500}
+.wtable tr:last-child td{border-bottom:0}
+.empty{color:var(--muted);margin:0}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:.9rem;font-weight:500;line-height:1.2}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:4px 9px;font-size:.8rem}
+.btn[disabled]{opacity:.45;cursor:default}
+.btn[aria-pressed="true"]{background:var(--accent-soft)}
+
+/* Lab */
+.bench{padding:12px}
+.bench-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 4px 10px}
+.status{display:inline-flex;align-items:center;gap:7px;font-size:.85rem;font-weight:600;margin-right:auto}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.status[data-s="running"] i{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.status[data-s="error"] i{background:var(--bad)}
+.status[data-s="error"]{color:var(--bad)}
+.stage-wrap{width:100%}
+#stage{display:block;width:100%;height:auto;border-radius:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#stage .lead{stroke:var(--lead);stroke-width:1.6;fill:none}
+#stage .wire{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#stage .wire-sh{fill:none;stroke:#000;stroke-opacity:.22;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+#stage .lbl{font-family:var(--f-mono);fill:#e2eeec}
+#stage .rail-lbl{font-family:var(--f-mono);font-size:9px;fill:var(--muted)}
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px;margin:12px 4px 2px}
+.inp{display:grid;gap:4px}
+.inp label{display:flex;justify-content:space-between;gap:8px;font-size:.86rem;font-weight:500}
+.inp output{font-family:var(--f-mono);font-size:.84rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.inp input[type=range]{width:100%;accent-color:var(--accent)}
+.hold{padding:10px 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;font-weight:600;touch-action:none;user-select:none;-webkit-user-select:none}
+.hold.down{background:var(--copper);border-color:var(--copper);color:#fff}
+.noinputs{font-size:.86rem;color:var(--muted);margin:10px 4px 0}
+
+.code-card,.serial-card{padding:0;overflow:hidden;background:var(--code-bg);border-color:var(--code-bg);color:var(--code-ink)}
+.code-head{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.code-head h2{font-size:.95rem;margin:0 auto 0 0;color:var(--code-ink)}
+.code-head .meta{font-family:var(--f-mono);font-size:.74rem;color:var(--code-muted)}
+.code-head .btn,.code-head .meta{white-space:nowrap}
+.code-head .btn{background:transparent;border-color:rgba(255,255,255,.18);color:var(--code-ink)}
+.code-head .btn:hover{border-color:var(--accent)}
+.code-head .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#code{display:block;width:100%;min-height:300px;height:340px;resize:vertical;border:0;margin:0;padding:12px 14px;background:transparent;color:var(--code-ink);font:400 13.5px/1.55 var(--f-mono);tab-size:2;white-space:pre;overflow:auto}
+#code:focus{outline:none;box-shadow:inset 0 0 0 2px var(--accent)}
+#serial{height:170px;overflow:auto;padding:10px 14px;font:400 13px/1.5 var(--f-mono);font-variant-numeric:tabular-nums}
+#serial .ln{white-space:pre-wrap;word-break:break-word}
+#serial .tip{color:#e8c46a}
+#serial .err{color:#ff8f86}
+#serial .sys{color:var(--code-muted)}
+
+.turn p{margin:0 0 12px;max-width:65ch}
+.turn .row{display:flex;gap:8px;flex-wrap:wrap}
+
+footer{max-width:1480px;margin:0 auto;padding:18px max(16px,3vw) 34px;color:var(--muted);font-size:.84rem;border-top:1px solid var(--line)}
+footer p{margin:0;max-width:80ch}
+
+@media (max-width:1180px){
+  .cols{grid-template-columns:minmax(0,1fr)}
+  .lab{position:static;order:-1}
+}
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .picker{display:block}
+  main{padding-top:16px}
+  .bar{width:80px}
+}
+@media (max-width:520px){
+  .brand-sub{display:none}
+  .card{padding:14px}
+  .bench{padding:8px}
+  .code-head .meta{display:none}
+  #code{height:300px;font-size:13px}
+}
+@media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="7" y="7" width="20" height="20" rx="3" fill="var(--accent)"/><g stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v4M17 2v4M22 2v4M12 28v4M17 28v4M22 28v4M2 12h4M2 17h4M2 22h4M28 12h4M28 17h4M28 22h4"/></g><circle cx="17" cy="17" r="3.4" fill="var(--copper)"/></svg>
+    <div>
+      <div class="brand-name">Pin by Pin</div>
+      <div class="brand-sub">16 Arduino lessons with a simulated board you program in the browser</div>
+    </div>
+  </div>
+  <div class="progress" aria-live="polite"><span id="progText">0 of 16 done</span><span class="bar"><i id="progBar"></i></span></div>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Lessons"></nav>
+  <main>
+    <section class="head">
+      <div class="eyebrow" id="eyebrow">Lesson 1 of 16</div>
+      <h1 id="title">Meet the board</h1>
+      <p id="summary"></p>
+      <div class="head-nav">
+        <div class="picker"><label for="lessonSelect" class="eyebrow" style="display:none">Choose a lesson</label><select id="lessonSelect" aria-label="Choose a lesson"></select></div>
+        <button class="btn" id="prevBtn" type="button">← Previous</button>
+        <button class="btn" id="nextBtn" type="button">Next →</button>
+      </div>
+    </section>
+
+    <div class="cols">
+      <div class="lab">
+        <section class="card bench" aria-label="Simulated board">
+          <div class="bench-bar">
+            <span class="status" id="status" data-s="stopped"><i></i><span id="statusText">Stopped</span></span>
+            <button class="btn small" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
+          </div>
+          <div class="stage-wrap" id="stageWrap"><svg id="stage" role="img" aria-label="Board and parts for this lesson" xmlns="http://www.w3.org/2000/svg"></svg></div>
+          <div id="inputs"></div>
+        </section>
+
+        <section class="card code-card" aria-label="Sketch editor">
+          <div class="code-head">
+            <h2>Sketch</h2>
+            <span class="meta" id="saveMeta">Ctrl + Enter runs</span>
+            <button class="btn small" id="resetBtn" type="button" title="Put back the lesson's original code">Reset code</button>
+            <button class="btn small" id="stopBtn" type="button">Stop</button>
+            <button class="btn small primary" id="runBtn" type="button">▶ Run</button>
+          </div>
+          <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Sketch code"></textarea>
+        </section>
+
+        <section class="card serial-card" aria-label="Serial monitor">
+          <div class="code-head">
+            <h2>Serial monitor</h2>
+            <span class="meta">9600 baud</span>
+            <button class="btn small" id="clearBtn" type="button">Clear</button>
+          </div>
+          <div id="serial" aria-live="off"></div>
+        </section>
+      </div>
+
+      <div class="notes">
+        <section class="card prose" id="learn"></section>
+        <section class="card" id="wiring"></section>
+        <section class="card turn" id="turn"></section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <p>The simulator runs a beginner-sized subset of Arduino C++ (variables, functions, if, for, while, arrays, Serial, Servo, Stepper and LiquidCrystal) by translating it to JavaScript. Real parts are noisier, and timing is approximate, so check each part's datasheet before you wire the real thing. Your code and progress stay in this browser.</p>
+</footer>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Constants ---------- */
+const HIGH = 1, LOW = 0, INPUT = 0, OUTPUT = 1, INPUT_PULLUP = 2;
+const A0 = 14, A1 = 15, A2 = 16, A3 = 17, A4 = 18, A5 = 19;
+const PWM_PINS = [3, 5, 6, 9, 10, 11];
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('pinbypin:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem('pinbypin:' + k, JSON.stringify(v)); } catch (e) {} }
+};
+
+/* ---------- Lessons ---------- */
+const LESSONS = [
+{
+  group: 'Basics', title: 'Meet the board',
+  summary: 'What is on an Uno-style board, and the two functions every sketch needs.',
+  body: [
+    "An Uno-style board is a small computer built around one chip, the ATmega328P, running at 16 MHz. You write a program, called a sketch, on your computer and send it over USB. From then on the board runs it by itself whenever it has power.",
+    "Every sketch has two functions. `setup()` runs once when the board powers up or resets. `loop()` then runs over and over, as fast as the chip can go, until the power is removed.",
+    "There is nothing to wire yet. The board talks back through the serial monitor, a text window that shows anything the sketch sends with `Serial.print()`."
+  ],
+  ideas: [
+    "14 digital pins, numbered 0 to 13. Six of them, marked ~, can dim things with PWM: 3, 5, 6, 9, 10 and 11.",
+    "6 analog inputs, A0 to A5, which turn 0 to 5 V into a number from 0 to 1023.",
+    "Pins 0 and 1 carry the USB serial data, so leave them free while you learn.",
+    "Each pin can safely supply about 20 mA. That lights an LED, but it can't run a motor."
+  ],
+  kit: ['Uno-compatible board', 'USB cable'],
+  parts: [], wiring: [],
+  code:
+`// setup() runs once when the board starts
+void setup() {
+  Serial.begin(9600);   // open the serial link at 9600 baud
+  Serial.println("Hello from the board!");
+  Serial.println("Chip: ATmega328P at 16 MHz");
+}
+
+// loop() runs again and again, forever
+void loop() {
+  unsigned long secs = millis() / 1000;
+  Serial.print("Seconds since start: ");
+  Serial.println(secs);
+  delay(1000);          // wait 1000 ms, which is one second
+}`,
+  challenge: "Change the greeting to your own name. Then add a second line inside `loop()` that prints how many whole minutes have passed (`secs / 60`)."
+},
+{
+  group: 'Basics', title: 'Blink an LED',
+  summary: 'Switch a pin on and off to make your first light flash.',
+  body: [
+    "Making an LED blink is the hello world of electronics. The sketch sets pin 13 as an output, then switches it between HIGH (5 volts) and LOW (0 volts).",
+    "The board already has a tiny LED marked L wired to pin 13. We've added a bigger red LED on the same pin so it's easier to see.",
+    "The resistor matters. Once an LED lights it barely resists current, so without a resistor it would draw too much and burn out, or damage the pin. A 220 Ω resistor keeps a red LED at roughly 13 mA."
+  ],
+  ideas: [
+    "`pinMode(pin, OUTPUT)` goes in `setup()`, before you write to the pin.",
+    "`digitalWrite(pin, HIGH)` puts 5 V on the pin. `LOW` puts 0 V.",
+    "`delay(ms)` pauses the whole sketch. 1000 ms is one second.",
+    "LEDs only work one way round: long leg (+) toward the pin, short leg (−) to GND."
+  ],
+  kit: ['Red LED', '220 Ω resistor', '2 jumper wires'],
+  parts: [{ type: 'led', pin: 13, color: '#ff3b30' }],
+  wiring: [['Pin 13', '220 Ω resistor, then LED long leg (+)'], ['LED short leg (−)', 'GND']],
+  code:
+`const int LED_PIN = 13;   // pin 13 also drives the board's L LED
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(LED_PIN, HIGH);  // 5 V on the pin: LED on
+  delay(500);                   // wait half a second
+  digitalWrite(LED_PIN, LOW);   // 0 V: LED off
+  delay(500);
+}`,
+  challenge: "Make the LED flash SOS in Morse code: three short blinks, three long blinks, three short, then a two-second pause. Try deleting the `pinMode` line too and see what happens to the brightness."
+},
+{
+  group: 'Basics', title: 'Fade with PWM',
+  summary: 'Dim an LED smoothly by switching it on and off very fast.',
+  body: [
+    "A digital pin is either fully on or fully off. To dim an LED, the board switches the pin on and off about 490 times a second and changes how much of each cycle is spent on. This is pulse-width modulation, or PWM.",
+    "Your eye averages the flicker, so a pin that is on 25% of the time looks dim and 100% looks bright. `analogWrite()` takes a value from 0 (always off) to 255 (always on).",
+    "Only the pins marked ~ can do this: 3, 5, 6, 9, 10 and 11. On any other pin, `analogWrite()` just switches fully on or off."
+  ],
+  ideas: [
+    "`analogWrite(pin, value)` sets the brightness, from 0 to 255.",
+    "A `for` loop has three parts: where to start, the test to keep going, and the step.",
+    "Bigger steps or shorter delays make the fade faster."
+  ],
+  kit: ['Amber LED', '220 Ω resistor'],
+  parts: [{ type: 'led', pin: 9, color: '#ffa31a' }],
+  wiring: [['Pin 9 (~)', '220 Ω resistor, then LED long leg (+)'], ['LED short leg (−)', 'GND']],
+  code:
+`const int LED_PIN = 9;   // must be a ~ pin for analogWrite
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+  // Brighten: 0, 5, 10 ... 255
+  for (int level = 0; level <= 255; level += 5) {
+    analogWrite(LED_PIN, level);
+    delay(20);
+  }
+  // Dim: 255, 250 ... 0
+  for (int level = 255; level >= 0; level -= 5) {
+    analogWrite(LED_PIN, level);
+    delay(20);
+  }
+}`,
+  challenge: "Make the LED breathe slowly between 20 and 200 instead of 0 and 255. Then change `LED_PIN` to 8, which has no ~, and read the tip in the serial monitor."
+},
+{
+  group: 'Basics', title: 'Read a button',
+  summary: 'Use a pushbutton as an input and react when it is pressed.',
+  body: [
+    "A pushbutton connects its two sides while you hold it down. With one side on pin 2 and the other on GND, pressing it pulls pin 2 down to 0 V.",
+    "When the button is up, the pin isn't connected to anything and would read random noise. `INPUT_PULLUP` turns on a resistor inside the chip that holds the pin at 5 V, so it reads HIGH until you press. That's why pressed means LOW here.",
+    "Press and hold the button below the board, or the button in the drawing itself."
+  ],
+  ideas: [
+    "`digitalRead(pin)` returns HIGH or LOW.",
+    "With `INPUT_PULLUP`, released reads HIGH and pressed reads LOW.",
+    "Real buttons bounce: one press can flicker on and off for a few milliseconds. A short delay smooths that out.",
+    "`if` and `else` choose between two paths."
+  ],
+  kit: ['Pushbutton', 'Green LED', '220 Ω resistor'],
+  parts: [{ type: 'button', pin: 2 }, { type: 'led', pin: 12, color: '#2fd06a' }],
+  wiring: [['Button, one side', 'Pin 2'], ['Button, other side', 'GND'], ['Pin 12', '220 Ω resistor, then LED long leg (+)'], ['LED short leg (−)', 'GND']],
+  code:
+`const int BUTTON_PIN = 2;
+const int LED_PIN = 12;
+int lastState = HIGH;
+
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP);  // reads HIGH until pressed
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int state = digitalRead(BUTTON_PIN);
+
+  if (state == LOW) {                 // pressed: pin 2 is pulled to GND
+    digitalWrite(LED_PIN, HIGH);
+  } else {
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  if (state != lastState) {           // only print when something changes
+    Serial.println(state == LOW ? "Pressed" : "Released");
+    lastState = state;
+  }
+  delay(10);
+}`,
+  challenge: "Make each press toggle the LED, so one press turns it on and the next turns it off. Hint: keep a `bool ledOn` and flip it with `ledOn = !ledOn;` when the state changes to LOW."
+},
+{
+  group: 'Basics', title: 'Turn a knob',
+  summary: 'Read a potentiometer with analogRead and use it to set brightness.',
+  body: [
+    "A potentiometer is a resistor with a sliding contact. With its outer legs on 5V and GND, the middle leg gives any voltage between 0 and 5 V, depending on where the knob sits.",
+    "`analogRead()` measures that voltage and returns a whole number from 0 to 1023. The chip's converter has 10 bits, which gives 1024 steps of about 4.9 mV each.",
+    "`map()` rescales the reading into the 0 to 255 range that `analogWrite()` expects. Drag the knob slider and watch both numbers change."
+  ],
+  ideas: [
+    "A0 to A5 read 0 to 5 V as 0 to 1023.",
+    "`map(value, fromLow, fromHigh, toLow, toHigh)` rescales a number. It uses whole numbers and drops any fraction.",
+    "`Serial.print()` stays on the same line. `Serial.println()` ends the line."
+  ],
+  kit: ['10 kΩ potentiometer', 'Amber LED', '220 Ω resistor'],
+  parts: [{ type: 'pot', apin: A0 }, { type: 'led', pin: 9, color: '#ffa31a' }],
+  wiring: [['Pot, outer leg', '5V'], ['Pot, other outer leg', 'GND'], ['Pot, middle leg', 'A0'], ['Pin 9 (~)', '220 Ω resistor, then LED long leg (+)'], ['LED short leg (−)', 'GND']],
+  code:
+`const int POT_PIN = A0;
+const int LED_PIN = 9;
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int reading = analogRead(POT_PIN);               // 0 to 1023
+  int brightness = map(reading, 0, 1023, 0, 255);  // 0 to 255
+  analogWrite(LED_PIN, brightness);
+
+  Serial.print("Pot: ");
+  Serial.print(reading);
+  Serial.print("   LED: ");
+  Serial.println(brightness);
+  delay(200);
+}`,
+  challenge: "Use the knob to set blink speed instead of brightness: map the reading to a delay between 50 and 1000 ms, and blink pin 13 (the board's L LED) at that speed."
+},
+{
+  group: 'Light and sound', title: 'Mix colours',
+  summary: 'Blend red, green and blue light from one RGB LED.',
+  body: [
+    "An RGB LED holds a red, a green and a blue LED in one package. Mixing different brightnesses of the three gives almost any colour.",
+    "This one is common cathode: the longest leg is shared by all three colours and goes to GND. Each colour leg gets its own resistor and its own ~ pin. (On a common anode LED the long leg goes to 5V instead, and 255 means off.)",
+    "The sketch wraps the three `analogWrite()` calls in a function called `setColor()`, so each colour change is one line."
+  ],
+  ideas: [
+    "A function bundles steps you repeat. `void` means it doesn't hand back a value.",
+    "Red plus green makes yellow, red plus blue makes purple, and all three make white.",
+    "The three colours aren't equally bright, so equal numbers rarely look perfectly balanced."
+  ],
+  kit: ['RGB LED (common cathode)', '3 × 220 Ω resistors'],
+  parts: [{ type: 'rgb', pins: [9, 10, 11] }],
+  wiring: [['Pin 9 (~)', '220 Ω resistor, then red leg'], ['Pin 10 (~)', '220 Ω resistor, then green leg'], ['Pin 11 (~)', '220 Ω resistor, then blue leg'], ['Longest leg', 'GND']],
+  code:
+`const int RED_PIN = 9;
+const int GREEN_PIN = 10;
+const int BLUE_PIN = 11;
+
+void setColor(int r, int g, int b) {
+  analogWrite(RED_PIN, r);
+  analogWrite(GREEN_PIN, g);
+  analogWrite(BLUE_PIN, b);
+}
+
+void setup() {
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BLUE_PIN, OUTPUT);
+}
+
+void loop() {
+  setColor(255, 0, 0);     // red
+  delay(800);
+  setColor(0, 255, 0);     // green
+  delay(800);
+  setColor(0, 0, 255);     // blue
+  delay(800);
+  setColor(255, 140, 0);   // orange
+  delay(800);
+  setColor(160, 0, 255);   // purple
+  delay(800);
+}`,
+  challenge: "Fade smoothly from red to blue: in a `for` loop, count `i` from 0 to 255 and call `setColor(255 - i, 0, i)` with a short delay."
+},
+{
+  group: 'Light and sound', title: 'Sense light',
+  summary: 'Build a night light that turns on when the room gets dark.',
+  body: [
+    "A light-dependent resistor (LDR) has very high resistance in the dark, often around a megohm, and only a few kilohms in bright light.",
+    "The board measures voltage, not resistance, so the LDR goes in a voltage divider with a 10 kΩ resistor. With the LDR on the 5V side, more light means a higher reading on A1.",
+    "The sketch compares the reading to a threshold. Below it, the night light turns on. Drag the light slider down to test it."
+  ],
+  ideas: [
+    "Two resistors in a row split the voltage between them in proportion to their resistance. That's a voltage divider.",
+    "A threshold turns a smooth reading into a yes or no decision.",
+    "Print the raw readings first, then pick a threshold that suits your room."
+  ],
+  kit: ['LDR (photoresistor)', '10 kΩ resistor', 'Yellow LED', '220 Ω resistor'],
+  parts: [{ type: 'ldr', apin: A1 }, { type: 'led', pin: 13, color: '#ffd21f' }],
+  wiring: [['LDR, one leg', '5V'], ['LDR, other leg', 'A1, and one end of the 10 kΩ resistor'], ['10 kΩ resistor, other end', 'GND'], ['Pin 13', '220 Ω resistor, then LED long leg (+)'], ['LED short leg (−)', 'GND']],
+  code:
+`const int LIGHT_PIN = A1;
+const int LED_PIN = 13;
+const int DARK_LEVEL = 300;   // tune this for your room
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int light = analogRead(LIGHT_PIN);
+  Serial.print("Light: ");
+  Serial.println(light);
+
+  if (light < DARK_LEVEL) {
+    digitalWrite(LED_PIN, HIGH);   // dark: night light on
+  } else {
+    digitalWrite(LED_PIN, LOW);
+  }
+  delay(250);
+}`,
+  challenge: "Print \"Dark\" or \"Bright\" only when the state changes, instead of printing every reading. You'll need a variable that remembers the last state."
+},
+{
+  group: 'Light and sound', title: 'Make a sound',
+  summary: 'Play notes on a piezo buzzer with tone().',
+  body: [
+    "A passive piezo buzzer contains a thin disc that bends when voltage is applied. Switch the voltage on and off quickly and the disc vibrates, making a sound at that frequency.",
+    "`tone(pin, frequency)` produces a square wave at the frequency you give, in hertz, and keeps it going in the background until `noTone()`. The board can play only one tone at a time.",
+    "The notes live in an array, a numbered list. `notes[0]` is the first value and `notes[7]` is the eighth. If you can't hear anything on a phone, check the silent switch."
+  ],
+  ideas: [
+    "Middle C is about 262 Hz, and the A above it is 440 Hz.",
+    "Array positions start at 0, not 1.",
+    "An active buzzer has its own oscillator and only beeps at one pitch. A passive one, like this, can play tunes."
+  ],
+  kit: ['Passive piezo buzzer'],
+  parts: [{ type: 'buzzer', pin: 8 }],
+  wiring: [['Buzzer (+)', 'Pin 8'], ['Buzzer (−)', 'GND']],
+  code:
+`const int BUZZER_PIN = 8;
+
+// Frequencies in hertz for a C major scale
+int notes[] = {262, 294, 330, 349, 392, 440, 494, 523};
+
+void setup() {
+  for (int i = 0; i < 8; i++) {
+    tone(BUZZER_PIN, notes[i]);
+    delay(300);
+  }
+  noTone(BUZZER_PIN);
+}
+
+void loop() {
+  // Empty: the scale plays once. Press Run to hear it again.
+}`,
+  challenge: "Play the scale back down after it goes up. Then write a short tune of your own with a second array that holds how long each note lasts."
+},
+{
+  group: 'Sensors', title: 'Measure temperature',
+  summary: 'Turn a TMP36 sensor voltage into degrees Celsius.',
+  body: [
+    "The TMP36 outputs a voltage that rises steadily with temperature: 0.5 V at 0 °C, plus 10 mV for every degree. At 25 °C it gives 0.75 V.",
+    "The sketch turns the reading back into volts (reading × 5.0 ÷ 1024), takes off the 0.5 V offset, and multiplies by 100 to get degrees.",
+    "Check the legs before powering it. A TMP36 wired backwards gets hot within seconds."
+  ],
+  ideas: [
+    "`float` holds numbers with decimals. `int` holds whole numbers only.",
+    "Write 5.0 rather than 5 so the maths keeps its decimals.",
+    "`Serial.print(value, 1)` prints one decimal place.",
+    "Expect accuracy of about ±1 to 2 °C, so treat the decimal as a rough guide."
+  ],
+  kit: ['TMP36 temperature sensor'],
+  parts: [{ type: 'tmp36', apin: A2 }],
+  wiring: [['Left leg (flat side facing you)', '5V'], ['Middle leg', 'A2'], ['Right leg', 'GND']],
+  code:
+`const int TEMP_PIN = A2;
+
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  int reading = analogRead(TEMP_PIN);
+  float voltage = reading * 5.0 / 1024.0;   // reading to volts
+  float tempC = (voltage - 0.5) * 100.0;    // 0.5 V at 0 °C, 10 mV per °C
+
+  Serial.print("Temperature: ");
+  Serial.print(tempC, 1);
+  Serial.println(" °C");
+  delay(1000);
+}`,
+  challenge: "Print the temperature in Fahrenheit as well: F = C × 9 ÷ 5 + 32. Then print a warning line when it goes above 30 °C."
+},
+{
+  group: 'Sensors', title: 'Measure distance',
+  summary: 'Time an ultrasonic echo to work out how far away something is.',
+  body: [
+    "The HC-SR04 measures distance with sound too high to hear. A 10 microsecond pulse on TRIG makes it send a burst of 40 kHz ultrasound, and it holds ECHO high until the echo returns.",
+    "`pulseIn()` measures how long ECHO stayed high, in microseconds. Sound covers about 0.0343 cm per microsecond at room temperature. It travels out and back, so the sketch halves the result.",
+    "It works from about 2 cm to 4 m. Soft or angled surfaces scatter the sound and give odd readings."
+  ],
+  ideas: [
+    "`delayMicroseconds()` waits in millionths of a second.",
+    "`long` holds bigger whole numbers than `int`, which tops out at 32,767 on the Uno.",
+    "Distance = time × speed ÷ 2."
+  ],
+  kit: ['HC-SR04 ultrasonic sensor', '4 jumper wires'],
+  parts: [{ type: 'ultra', trig: 7, echo: 6 }],
+  wiring: [['VCC', '5V'], ['TRIG', 'Pin 7'], ['ECHO', 'Pin 6'], ['GND', 'GND']],
+  code:
+`const int TRIG_PIN = 7;
+const int ECHO_PIN = 6;
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  // A 10 microsecond pulse tells the sensor to ping
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  // ECHO stays HIGH while the sound goes out and back
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  float distanceCm = duration * 0.0343 / 2;
+
+  Serial.print("Distance: ");
+  Serial.print(distanceCm, 1);
+  Serial.println(" cm");
+  delay(300);
+}`,
+  challenge: "Print \"Too close!\" whenever the distance is under 10 cm. Then try removing the TRIG pulse lines and see what `pulseIn()` returns."
+},
+{
+  group: 'Movement', title: 'Point a servo',
+  summary: 'Move a servo motor to an exact angle.',
+  body: [
+    "A hobby servo is a small motor with gears and a position sensor inside. You tell it an angle and it drives itself there and holds it.",
+    "The control signal is a pulse sent about 50 times a second. Roughly 1 ms means 0°, 1.5 ms means 90° and 2 ms means 180°. The Servo library handles that timing for you.",
+    "A small servo like the SG90 can run from the board's 5V pin. Bigger ones need their own supply, with its ground joined to the board's GND."
+  ],
+  ideas: [
+    "`#include` adds a library to the sketch.",
+    "`Servo arm;` creates a servo, `arm.attach(pin)` connects it, and `arm.write(angle)` moves it.",
+    "The Servo library uses the timer behind pins 9 and 10, so `analogWrite()` on those pins stops working while a servo is attached."
+  ],
+  kit: ['SG90 micro servo'],
+  parts: [{ type: 'servo', pin: 3 }],
+  wiring: [['Brown or black wire', 'GND'], ['Red wire', '5V'], ['Orange or yellow wire', 'Pin 3']],
+  code:
+`#include <Servo.h>
+
+Servo arm;
+
+void setup() {
+  arm.attach(3);
+}
+
+void loop() {
+  // Sweep from 0 to 180 degrees in steps of 10
+  for (int angle = 0; angle <= 180; angle += 10) {
+    arm.write(angle);
+    delay(100);
+  }
+  delay(500);
+  arm.write(0);      // snap back to the start
+  delay(1000);
+}`,
+  challenge: "Sweep back smoothly from 180 to 0 instead of snapping. Then combine this with lesson 5: read a knob on A0 and map it to an angle."
+},
+{
+  group: 'Movement', title: 'Spin a motor',
+  summary: 'Drive a DC motor safely through a transistor.',
+  body: [
+    "A small DC motor can draw several hundred milliamps, many times what a pin can supply. So the pin drives a transistor, and the transistor switches the motor's current.",
+    "The diode across the motor matters. When the motor switches off, its coil throws back a voltage spike that can destroy the transistor. The diode gives that spike a safe path.",
+    "`analogWrite()` on the transistor sets the speed with PWM. Most motors won't start turning below a certain value because of friction."
+  ],
+  ideas: [
+    "Never connect a motor straight to a pin.",
+    "A transistor is an electronic switch: a small current into its base controls a much bigger one through it.",
+    "Bigger motors need their own power supply, with its ground joined to the board's GND."
+  ],
+  kit: ['Small DC motor', 'NPN transistor (such as TIP120)', '1 kΩ resistor', '1N4001 diode'],
+  parts: [{ type: 'motor', pin: 5 }],
+  wiring: [['Pin 5 (~)', '1 kΩ resistor, then transistor base'], ['Transistor emitter', 'GND'], ['Transistor collector', 'Motor (−)'], ['Motor (+)', '5V, or a separate battery for bigger motors'], ['Diode', 'Across the motor, striped end toward (+)']],
+  code:
+`const int MOTOR_PIN = 5;   // goes to the transistor, not the motor
+
+void setup() {
+  pinMode(MOTOR_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  Serial.println("Speeding up");
+  for (int speed = 0; speed <= 255; speed += 15) {
+    analogWrite(MOTOR_PIN, speed);
+    delay(150);
+  }
+  delay(1000);
+
+  Serial.println("Stop");
+  analogWrite(MOTOR_PIN, 0);
+  delay(1500);
+}`,
+  challenge: "Make the motor pulse: half speed (128) for one second, off for one second, forever."
+},
+{
+  group: 'Movement', title: 'Step precisely',
+  summary: 'Turn a stepper motor an exact number of steps.',
+  body: [
+    "A stepper motor moves in fixed steps instead of spinning freely. The 28BYJ-48 has gears inside, and with the Stepper library it takes 2048 steps per full turn.",
+    "Its four coils need more current than the pins can give, so a ULN2003 driver board sits in between. The four LEDs on the driver show which coils are on.",
+    "`motor.step()` doesn't return until the move is finished, so nothing else in the sketch runs during it."
+  ],
+  ideas: [
+    "`setSpeed()` sets revolutions per minute. The 28BYJ-48 tops out around 10 to 15 rpm.",
+    "Positive step counts turn one way, negative counts the other.",
+    "The pin order 8, 10, 9, 11 in the code is deliberate. With 8, 9, 10, 11 the motor just buzzes in place."
+  ],
+  kit: ['28BYJ-48 stepper motor', 'ULN2003 driver board'],
+  parts: [{ type: 'stepper', pins: [8, 9, 10, 11] }],
+  wiring: [['IN1', 'Pin 8'], ['IN2', 'Pin 9'], ['IN3', 'Pin 10'], ['IN4', 'Pin 11'], ['Driver (+)', '5V'], ['Driver (−)', 'GND'], ['Motor plug', 'White socket on the driver']],
+  code:
+`#include <Stepper.h>
+
+const int STEPS_PER_REV = 2048;   // 28BYJ-48 with the Stepper library
+
+// Pins in the order IN1, IN3, IN2, IN4
+Stepper motor(STEPS_PER_REV, 8, 10, 9, 11);
+
+void setup() {
+  motor.setSpeed(10);   // revolutions per minute
+  Serial.begin(9600);
+}
+
+void loop() {
+  Serial.println("Quarter turn one way");
+  motor.step(512);
+  delay(500);
+  Serial.println("Quarter turn back");
+  motor.step(-512);
+  delay(500);
+}`,
+  challenge: "Turn the motor into a clock's second hand: move 2048 ÷ 60 steps (about 34) every second, and print the seconds count each time."
+},
+{
+  group: 'Projects', title: 'Show text on a screen',
+  summary: 'Write words and numbers on a 16 × 2 character LCD.',
+  body: [
+    "A 16 × 2 LCD shows two rows of 16 characters. Most use the HD44780 controller, which the LiquidCrystal library knows how to drive.",
+    "It needs six data pins, plus power, ground and a contrast knob. If the screen shows a row of solid blocks or nothing at all, turn the contrast knob before anything else.",
+    "`lcd.print()` writes at the cursor and leaves old characters in place, so the sketch adds spaces to cover leftovers."
+  ],
+  ideas: [
+    "`setCursor(column, row)` counts from 0, so the second row is row 1.",
+    "`lcd.clear()` wipes the screen, but calling it every loop makes the display flicker.",
+    "Text past column 16 doesn't wrap onto the next row."
+  ],
+  kit: ['16 × 2 LCD (HD44780)', '10 kΩ potentiometer for contrast', '220 Ω resistor for the backlight'],
+  parts: [{ type: 'lcd' }],
+  wiring: [['RS', 'Pin 12'], ['E', 'Pin 11'], ['D4, D5, D6, D7', 'Pins 5, 4, 3, 2'], ['VSS, RW, K', 'GND'], ['VDD', '5V'], ['A (backlight)', '220 Ω resistor to 5V'], ['V0 (contrast)', 'Middle leg of the 10 kΩ pot']],
+  code:
+`#include <LiquidCrystal.h>
+
+// RS, E, D4, D5, D6, D7
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+void setup() {
+  lcd.begin(16, 2);        // 16 columns, 2 rows
+  lcd.print("Pin by Pin");
+}
+
+void loop() {
+  unsigned long secs = millis() / 1000;
+  lcd.setCursor(0, 1);     // column 0 of the second row
+  lcd.print("Running ");
+  lcd.print(secs);
+  lcd.print(" s   ");      // spaces cover old digits
+  delay(1000);
+}`,
+  challenge: "Show a countdown from 10 to 0 on the second row, then print \"Lift off!\" and stop changing the screen."
+},
+{
+  group: 'Projects', title: 'Plant monitor',
+  summary: 'Read soil moisture, show it on the LCD and flag when to water.',
+  body: [
+    "This project combines a capacitive soil moisture sensor, the LCD and an alert LED. The sensor's reading drops as the soil gets wetter.",
+    "Every sensor is a little different, so calibrate it. Note the reading in dry air and with the probe in a glass of water, then put those numbers in `DRY_VALUE` and `WET_VALUE`.",
+    "Capacitive sensors last far longer than the cheap two-prong resistive ones, which corrode in damp soil within weeks."
+  ],
+  ideas: [
+    "`map()` can run backwards: here a high reading becomes 0% and a low reading becomes 100%.",
+    "`constrain(value, low, high)` keeps a number inside a range.",
+    "Only push the sensor in up to the line on its board. The electronics above it aren't waterproof."
+  ],
+  kit: ['Capacitive soil moisture sensor', '16 × 2 LCD and parts from lesson 14', 'Red LED', '220 Ω resistor'],
+  parts: [{ type: 'soil', apin: A0 }, { type: 'lcd' }, { type: 'led', pin: 7, color: '#ff3b30' }],
+  wiring: [['Sensor AOUT', 'A0'], ['Sensor VCC', '5V'], ['Sensor GND', 'GND'], ['LCD', 'Same as lesson 14'], ['Pin 7', '220 Ω resistor, then LED long leg (+)'], ['LED short leg (−)', 'GND']],
+  code:
+`#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+const int SOIL_PIN = A0;
+const int ALERT_LED = 7;
+
+// Calibrate these with your own sensor
+const int DRY_VALUE = 620;   // reading in open air
+const int WET_VALUE = 280;   // reading in a glass of water
+
+void setup() {
+  lcd.begin(16, 2);
+  pinMode(ALERT_LED, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int reading = analogRead(SOIL_PIN);
+  int moisture = map(reading, DRY_VALUE, WET_VALUE, 0, 100);
+  moisture = constrain(moisture, 0, 100);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Moisture: ");
+  lcd.print(moisture);
+  lcd.print("%   ");
+
+  lcd.setCursor(0, 1);
+  if (moisture < 30) {
+    lcd.print("Water me!       ");
+    digitalWrite(ALERT_LED, HIGH);
+  } else {
+    lcd.print("All good        ");
+    digitalWrite(ALERT_LED, LOW);
+  }
+
+  Serial.println(reading);
+  delay(1000);
+}`,
+  challenge: "Blink the alert LED instead of holding it on when the soil is dry. Then add a third message, \"Too wet\", above 85%."
+},
+{
+  group: 'Projects', title: 'Parking sensor',
+  summary: 'Combine distance, colour and sound into one working gadget.',
+  body: [
+    "The final project works like a car's parking sensor: green and silent when clear, amber with beeps that speed up as you get closer, and red with a steady tone when you're too close.",
+    "`readDistance()` is a function that returns a value. The word `float` before its name says it hands back a number with decimals.",
+    "Drag the distance slider slowly toward the sensor and listen to the beeps change."
+  ],
+  ideas: [
+    "`return` sends a value back from a function to wherever it was called.",
+    "`else if` checks a second condition when the first one fails.",
+    "`tone()` borrows the timer behind PWM on pins 3 and 11, so the blue leg uses pin 5 here."
+  ],
+  kit: ['HC-SR04 ultrasonic sensor', 'RGB LED (common cathode)', '3 × 220 Ω resistors', 'Passive piezo buzzer'],
+  parts: [{ type: 'ultra', trig: 7, echo: 6 }, { type: 'rgb', pins: [9, 10, 5] }, { type: 'buzzer', pin: 8 }],
+  wiring: [['Sensor VCC, TRIG, ECHO, GND', '5V, Pin 7, Pin 6, GND'], ['Pin 9 (~)', '220 Ω resistor, then red leg'], ['Pin 10 (~)', '220 Ω resistor, then green leg'], ['Pin 5 (~)', '220 Ω resistor, then blue leg'], ['RGB longest leg', 'GND'], ['Buzzer (+), (−)', 'Pin 8, GND']],
+  code:
+`const int TRIG_PIN = 7;
+const int ECHO_PIN = 6;
+const int RED_PIN = 9;
+const int GREEN_PIN = 10;
+const int BLUE_PIN = 5;
+const int BUZZER_PIN = 8;
+
+float readDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  return duration * 0.0343 / 2;
+}
+
+void setColor(int r, int g, int b) {
+  analogWrite(RED_PIN, r);
+  analogWrite(GREEN_PIN, g);
+  analogWrite(BLUE_PIN, b);
+}
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  float cm = readDistance();
+  Serial.print(cm, 0);
+  Serial.println(" cm");
+
+  if (cm > 100) {
+    setColor(0, 255, 0);        // clear: green, silent
+    noTone(BUZZER_PIN);
+    delay(200);
+  } else if (cm > 30) {
+    setColor(255, 140, 0);      // closer: amber, beeps speed up
+    tone(BUZZER_PIN, 880, 80);
+    delay(map(cm, 30, 100, 150, 600));
+  } else {
+    setColor(255, 0, 0);        // too close: red, steady tone
+    tone(BUZZER_PIN, 1200);
+    delay(100);
+  }
+}`,
+  challenge: "Add a \"Parked\" message to the serial monitor that appears once when the distance has stayed under 10 cm for three seconds. Hint: `millis()` tells you how long something has lasted."
+}
+];
+
+/* ---------- Simulation state ---------- */
+const STOP = { stop: true };
+const sim = { pins: [], tone: null, servos: {}, stepper: null, lcd: null, serialStarted: false, warned: new Set(), txFlash: -1e9, ping: -1e9, trigFired: false, inputs: [], pressed: [] };
+let runToken = 0, startTime = performance.now(), lastYield = 0, parts = [], lessonIdx = 0;
+let actx = null, osc = null, gainNode = null, soundOn = store.get('sound', true);
+
+function resetSim(){
+  sim.pins = Array.from({ length: 20 }, () => ({ mode: null, out: 0, pwm: null }));
+  sim.tone = null; sim.servos = {}; sim.stepper = null; sim.lcd = null;
+  sim.serialStarted = false; sim.warned = new Set(); sim.txFlash = -1e9; sim.ping = -1e9; sim.trigFired = false;
+  audioOff();
+}
+resetSim();
+
+function normPin(p){ p = Math.trunc(+p); return Number.isFinite(p) ? p : -1; }
+function warnOnce(key, msg){ if (sim.warned.has(key)) return; sim.warned.add(key); sysLine('tip', 'Tip: ' + msg); }
+function sleep(ms){
+  const tok = runToken;
+  return new Promise((res, rej) => setTimeout(() => { if (tok !== runToken) rej(STOP); else { lastYield = performance.now(); res(); } }, ms));
+}
+function fmt(v, opt){
+  if (typeof v === 'boolean') v = v ? 1 : 0;
+  if (typeof v === 'number'){
+    if (Number.isNaN(v)) return 'nan';
+    if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf';
+    if (opt === undefined) return Number.isInteger(v) ? String(v) : v.toFixed(2);
+    if (Number.isInteger(v) && (opt === 16 || opt === 10)) return v.toString(opt).toUpperCase();
+    return v.toFixed(Math.max(0, Math.min(8, Math.trunc(opt))));
+  }
+  return v === undefined || v === null ? '' : String(v);
+}
+function partOn(test){ for (let i = 0; i < parts.length; i++) if (test(parts[i])) return i; return -1; }
+
+/* Arduino-style API */
+function pinMode(p, m){ p = normPin(p); if (sim.pins[p]) sim.pins[p].mode = m; }
+function digitalWrite(p, v){
+  p = normPin(p); const s = sim.pins[p]; if (!s) return;
+  s.out = v ? 1 : 0; s.pwm = null;
+  if (s.mode !== OUTPUT) warnOnce('dw' + p, `pin ${p} isn't set as an output, so the LED glows only faintly. Add pinMode(${p}, OUTPUT); to setup().`);
+  if (v && partOn(q => q.type === 'ultra' && q.trig === p) >= 0) sim.trigFired = true;
+}
+function analogWrite(p, v){
+  p = normPin(p); const s = sim.pins[p]; if (!s) return;
+  v = Math.max(0, Math.min(255, Math.trunc(+v) || 0)); s.mode = OUTPUT;
+  if (PWM_PINS.includes(p)) { s.pwm = v; s.out = v > 0 ? 1 : 0; }
+  else { s.pwm = null; s.out = v >= 128 ? 1 : 0; warnOnce('aw' + p, `pin ${p} can't fade. analogWrite() only dims on ~ pins: 3, 5, 6, 9, 10 and 11. Other pins just switch fully on (128 or more) or off.`); }
+}
+function digitalRead(p){
+  p = normPin(p); const s = sim.pins[p]; if (!s) return LOW;
+  const b = partOn(q => q.type === 'button' && q.pin === p);
+  if (b >= 0){
+    if (sim.pressed[b]) return LOW;
+    if (s.mode === INPUT_PULLUP) return HIGH;
+    warnOnce('float' + p, `pin ${p} is floating while the button is up, so it reads random values. Use pinMode(${p}, INPUT_PULLUP);`);
+    return Math.random() < 0.5 ? HIGH : LOW;
+  }
+  if (s.mode === OUTPUT) return s.out;
+  if (s.mode === INPUT_PULLUP) return HIGH;
+  return LOW;
+}
+function analogRead(p){
+  p = normPin(p);
+  const ap = p >= 14 && p <= 19 ? p : (p >= 0 && p <= 5 ? p + 14 : -1);
+  if (ap < 0) { warnOnce('ar' + p, `analogRead() needs an analog pin, A0 to A5.`); return 0; }
+  const i = partOn(q => q.apin === ap);
+  if (i < 0) return 290 + Math.floor(Math.random() * 60);
+  const v = sim.inputs[i], j = n => Math.round((Math.random() - 0.5) * 2 * n);
+  const clamp = x => Math.max(0, Math.min(1023, Math.round(x)));
+  switch (parts[i].type){
+    case 'pot': return clamp(v + j(1));
+    case 'ldr': return clamp(40 + v * 9.4 + j(2));
+    case 'tmp36': return clamp((0.5 + v * 0.01) / 5 * 1024 + j(1));
+    case 'soil': return clamp(620 - v * 3.4 + j(3));
+  }
+  return 0;
+}
+function pulseIn(p, state){
+  p = normPin(p);
+  const i = partOn(q => q.type === 'ultra' && q.echo === p);
+  if (i < 0 || state !== HIGH) return 0;
+  if (!sim.trigFired) { warnOnce('trig', 'pulseIn() returned 0 because the sensor never got a trigger. Send a 10 µs HIGH pulse on TRIG first.'); return 0; }
+  sim.trigFired = false; sim.ping = performance.now();
+  return Math.max(0, Math.round(sim.inputs[i] * 2 / 0.0343 + (Math.random() - 0.5) * 6));
+}
+function tone(p, f, d){
+  p = normPin(p); if (sim.pins[p]) sim.pins[p].mode = OUTPUT;
+  f = Math.max(31, +f || 0);
+  sim.tone = { pin: p, freq: f, until: d ? performance.now() + +d : Infinity };
+  if (partOn(q => q.type === 'buzzer' && q.pin === p) >= 0) audioTone(f);
+}
+function noTone(p){ if (sim.tone && sim.tone.pin === normPin(p)) { sim.tone = null; audioOff(); } }
+function delay(ms){ return sleep(Math.max(0, +ms || 0)); }
+function delayMicroseconds(us){ us = +us || 0; return us >= 1000 ? sleep(us / 1000) : Promise.resolve(); }
+function millis(){ return Math.floor(performance.now() - startTime); }
+function micros(){ return Math.floor((performance.now() - startTime) * 1000); }
+function map(x, a, b, c, d){ return Math.trunc((Math.trunc(x) - a) * (d - c) / (b - a) + c); }
+function constrain(x, a, b){ return x < a ? a : x > b ? b : x; }
+function random(a, b){ if (b === undefined) { b = a; a = 0; } return Math.floor(a + Math.random() * (b - a)); }
+const Serial = {
+  begin(){ sim.serialStarted = true; },
+  print(v, o){ return serialOut(fmt(v, o), false); },
+  println(v, o){ return serialOut(v === undefined ? '' : fmt(v, o), true); },
+  write(v){ return serialOut(typeof v === 'number' ? String.fromCharCode(v) : fmt(v), false); },
+  available(){ return 0; }, read(){ return -1; }, flush(){}
+};
+function serialOut(t, nl){
+  if (!sim.serialStarted) { warnOnce('serial', 'nothing printed because the serial link is closed. Add Serial.begin(9600); to setup().'); return 0; }
+  serialWrite(t, nl); sim.txFlash = performance.now(); return t.length;
+}
+class Servo {
+  constructor(){ this.pin = -1; this.target = 90; this.shown = 90; }
+  attach(p){ p = normPin(p); this.pin = p; sim.servos[p] = this; if (sim.pins[p]) sim.pins[p].mode = OUTPUT; return 1; }
+  write(a){ a = +a || 0; if (a >= 544) a = (a - 544) / (2400 - 544) * 180; this.target = Math.max(0, Math.min(180, Math.round(a))); }
+  writeMicroseconds(us){ this.write(+us); }
+  read(){ return this.target; }
+  attached(){ return this.pin >= 0; }
+  detach(){ delete sim.servos[this.pin]; this.pin = -1; }
+}
+const STEP_SEQ = [[1,0,1,0],[0,1,1,0],[0,1,0,1],[1,0,0,1]];
+class Stepper {
+  constructor(spr, p1, p2, p3, p4){ this.spr = +spr || 200; this.pins = [p1, p2, p3, p4].map(normPin); this.rpm = 1; this.n = 0; this.pos = 0; sim.stepper = this; this.pins.forEach(p => { if (sim.pins[p]) sim.pins[p].mode = OUTPUT; }); }
+  setSpeed(r){ this.rpm = Math.max(0.1, +r || 0.1); }
+  async step(count){
+    const dir = Math.sign(count); let left = Math.abs(Math.trunc(count));
+    const msPer = 60000 / this.spr / this.rpm;
+    while (left > 0){
+      const batch = Math.max(1, Math.min(left, Math.floor(16 / msPer)));
+      for (let k = 0; k < batch; k++){
+        this.n = ((this.n + dir) % this.spr + this.spr) % this.spr; this.pos += dir;
+        const seq = STEP_SEQ[this.n % 4];
+        this.pins.forEach((p, idx) => { if (sim.pins[p]) { sim.pins[p].out = seq[idx]; sim.pins[p].pwm = null; } });
+      }
+      left -= batch;
+      await sleep(batch * msPer);
+    }
+  }
+}
+class LiquidCrystal {
+  constructor(...pins){ this.pins = pins.map(normPin); this.on = false; this.clear(); sim.lcd = this; this.pins.forEach(p => { if (sim.pins[p]) sim.pins[p].mode = OUTPUT; }); }
+  begin(){ this.on = true; this.clear(); }
+  clear(){ this.buf = [Array(16).fill(' '), Array(16).fill(' ')]; this.c = 0; this.r = 0; }
+  home(){ this.c = 0; this.r = 0; }
+  setCursor(c, r){ this.c = Math.max(0, Math.trunc(c) || 0); this.r = Math.max(0, Math.min(1, Math.trunc(r) || 0)); }
+  print(v, o){
+    if (!this.on) warnOnce('lcd', 'the screen stays blank until you call lcd.begin(16, 2); in setup().');
+    const s = fmt(v, o); for (const ch of s){ if (this.c < 16) this.buf[this.r][this.c] = ch; this.c++; } return s.length;
+  }
+  write(v){ return this.print(typeof v === 'number' ? String.fromCharCode(v) : v); }
+  display(){} noDisplay(){} cursor(){} noCursor(){} blink(){} noBlink(){}
+}
+const __int = v => typeof v === 'number' ? (Number.isFinite(v) ? Math.trunc(v) : 0) : (typeof v === 'boolean' ? +v : v);
+
+/* ---------- Sketch translator (Arduino C++ subset to JS) ---------- */
+const INT_T = String.raw`(?:unsigned\s+long|unsigned\s+int|unsigned\s+char|long\s+long|unsigned|long|int|short|byte|word|uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|size_t)`;
+const FLT_T = String.raw`(?:float|double)`;
+const OTH_T = String.raw`(?:bool|boolean|String|char)`;
+const ANY_T = `(?:${INT_T}|${FLT_T}|${OTH_T})`;
+const FN_T = `(?:void|${ANY_T})`;
+const R = (src, flags = 'g') => new RegExp(src, flags);
+
+function transpile(src){
+  const strs = [];
+  let s = src.replace(/\r\n?/g, '\n');
+  s = s.replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, m => {
+    if (m.startsWith('//')) return '';
+    if (m.startsWith('/*')) return m.replace(/[^\n]/g, '');
+    strs.push(m); return `__S${strs.length - 1}__`;
+  });
+  const open = (s.match(/\{/g) || []).length, close = (s.match(/\}/g) || []).length;
+  if (open !== close) throw new SyntaxError(`The braces don't match: ${open} opening { and ${close} closing }.`);
+  const po = (s.match(/\(/g) || []).length, pc = (s.match(/\)/g) || []).length;
+  if (po !== pc) throw new SyntaxError(`The brackets don't match: ${po} opening ( and ${pc} closing ).`);
+
+  checkSemicolons(s);
+  s = s.replace(/^[ \t]*#include[^\n]*/gm, '');
+  s = s.replace(/^[ \t]*#define[ \t]+(\w+)[ \t]+([^\n]+)/gm, (m, a, b) => `const ${a} = ${b.trim().replace(/;$/, '')};`);
+  s = s.replace(/^[ \t]*#[^\n]*/gm, '');
+  s = s.replace(/\bServo\s+(\w+)\s*;/g, 'let $1 = new Servo();');
+  s = s.replace(/\b(Stepper|LiquidCrystal)\s+(\w+)\s*\(([^;]*?)\)\s*;/g, 'let $2 = new $1($3);');
+  s = s.replace(R(String.raw`\(\s*${INT_T}\s*\)\s*\(`), '__int(');
+  s = s.replace(R(String.raw`\(\s*${INT_T}\s*\)\s*(\w+(?:\.\w+)?(?:\([^()]*\))?)`), '__int($1)');
+  s = s.replace(R(String.raw`\(\s*${FLT_T}\s*\)`), '');
+  s = s.replace(R(String.raw`(^|[;{}\n])\s*${FN_T}\s+\w+\s*\([^)]*\)\s*;`), '$1');
+
+  const fns = [];
+  s = s.replace(R(String.raw`(^|[;{}\n])(\s*)(?:static\s+|inline\s+)*${FN_T}\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*\{`), (m, pre, ws, name, params) => {
+    fns.push(name);
+    const t = params.trim();
+    const ps = (t === '' || t === 'void') ? '' : params.split(',').map(p => p.replace(/\[\s*\]/g, '').replace(/=.*$/, '').trim().split(/[\s*&]+/).pop()).join(', ');
+    return `${pre}${ws}async function ${name}(${ps}) {`;
+  });
+
+  const intVars = new Set();
+  s = s.replace(R(String.raw`(?:const\s+)?${ANY_T}\s+(\w+)\s*\[[^\]]*\]\s*=\s*\{([^}]*)\}`), 'let $1 = [$2]');
+  s = s.replace(R(String.raw`(?:const\s+)?${ANY_T}\s+(\w+)\s*\[\s*([^\]]+)\]\s*;`), 'let $1 = new Array($2).fill(0);');
+  s = s.replace(R(String.raw`\bconst\s+${INT_T}\s+(\w+)\s*=\s*([^;]+);`), (m, n, v) => { intVars.add(n); return `const ${n} = __int(${v});`; });
+  s = s.replace(R(String.raw`\bconst\s+(?:${FLT_T}|${OTH_T})\s+(\w+)\s*(?:\[\s*\])?\s*=`), 'const $1 =');
+  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*${INT_T}\s+(\w+)\s*=\s*([^;]+);`), (m, pre, n, v) => { intVars.add(n); return `${pre}let ${n} = __int(${v});`; });
+  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*${INT_T}\s+(\w+)\s*;`), (m, pre, n) => { intVars.add(n); return `${pre}let ${n} = 0;`; });
+  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*${FLT_T}\s+(\w+)\s*;`), '$1let $2 = 0;');
+  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+)*(?:bool|boolean)\s+(\w+)\s*;`), '$1let $2 = false;');
+  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+)*String\s+(\w+)\s*;`), '$1let $2 = "";');
+  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+)*char\s+(\w+)\s*;`), '$1let $2 = 0;');
+  s = s.replace(R(String.raw`(^|[^\w.])(?:static\s+|volatile\s+)*(?:${FLT_T}|${OTH_T})\s+(\w+)\s*(?:\[\s*\])?\s*=`), '$1let $2 =');
+  for (const n of intVars){
+    s = s.replace(R(String.raw`(?<![\w.])(?<!let\s)(?<!const\s)${n}\s*=(?!=)\s*([^;]+);`), `${n} = __int($1);`);
+  }
+  for (const n of ['delay', 'delayMicroseconds', ...fns]){
+    s = s.replace(R(String.raw`(?<![\w.])(?<!function\s)${n}\s*\(`), `await ${n}(`);
+  }
+  s = s.replace(/(\w+)\.step\s*\(/g, 'await $1.step(');
+  s = s.replace(/\bdo\s*\{/g, 'do { await __tick();');
+  s = injectTicks(s);
+  s = s.replace(/__S(\d+)__/g, (m, i) => strs[+i]);
+  return { js: s, fns };
+}
+// The real compiler refuses a missing semicolon, so the simulator does too.
+function checkSemicolons(s){
+  const lines = s.split('\n'); let depth = 0;
+  for (let n = 0; n < lines.length; n++){
+    const t = lines[n].trim();
+    const startDepth = depth;
+    for (const ch of t){ if (ch === '(') depth++; else if (ch === ')') depth--; }
+    if (!t || t.startsWith('#') || startDepth > 0 || depth > 0) continue;
+    let next = ''; for (let k = n + 1; k < lines.length; k++){ if (lines[k].trim()){ next = lines[k].trim(); break; } }
+    const kw = /^(if|else|for|while|do|switch|case|default)\b/.test(t) || /^\}\s*else\b/.test(t);
+    const bad = /[\w)\]]$/.test(t) && !kw && !/^[{.+\-*\/%&|?:<>=)]/.test(next) && !/^(else)\b/.test(next);
+    const inner = /[\w)\]]\s*\}\s*$/.test(t) && !/=\s*\{/.test(t) && /\{/.test(t);
+    if (bad || inner){
+      const shown = t.replace(/__S\d+__/g, '"…"');
+      throw new SyntaxError(`Line ${n + 1} is missing a semicolon (;) at the end of a statement: ${shown}`);
+    }
+  }
+}
+function injectTicks(s){
+  let out = '', last = 0; const re = /\b(while|for)\s*\(/g; let m;
+  while ((m = re.exec(s))){
+    let j = m.index + m[0].length, depth = 1;
+    while (j < s.length && depth){ if (s[j] === '(') depth++; else if (s[j] === ')') depth--; j++; }
+    let k = j; while (k < s.length && /\s/.test(s[k])) k++;
+    if (s[k] === '{'){ out += s.slice(last, k + 1) + ' await __tick();'; last = k + 1; re.lastIndex = k + 1; }
+    else if (s[k] === ';'){ out += s.slice(last, k) + ' { await __tick(); }'; last = k + 1; re.lastIndex = k + 1; }
+  }
+  return out + s.slice(last);
+}
+
+const API = { delay, delayMicroseconds, pinMode, digitalWrite, digitalRead, analogRead, analogWrite, pulseIn, tone, noTone, millis, micros, map, constrain, random,
+  randomSeed(){}, abs: Math.abs, min: Math.min, max: Math.max, pow: Math.pow, sqrt: Math.sqrt, sq: x => x * x, sin: Math.sin, cos: Math.cos, tan: Math.tan,
+  floor: Math.floor, ceil: Math.ceil, round: Math.round, isnan: Number.isNaN, F: x => x, Serial, Servo, Stepper, LiquidCrystal, __int,
+  HIGH, LOW, INPUT, OUTPUT, INPUT_PULLUP, A0, A1, A2, A3, A4, A5, LED_BUILTIN: 13, PI: Math.PI, DEC: 10, HEX: 16 };
+const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+
+function friendly(e){
+  const m = String(e && e.message || e);
+  let r = /^(\w+) is not defined/.exec(m);
+  if (r) return `"${r[1]}" isn't defined. Check the spelling and capital letters, or declare it first, for example int ${r[1]} = 0;`;
+  r = /(\w+(?:\.\w+)?) is not a function/.exec(m);
+  if (r) return `${r[1]}() isn't a function the simulator knows. Check the spelling and capital letters.`;
+  r = /Cannot access '(\w+)' before initialization/.exec(m);
+  if (r) return `"${r[1]}" is used before it's declared. Move its declaration higher up.`;
+  return m;
+}
+
+async function run(){
+  ensureAudio();
+  const token = ++runToken;
+  resetSim(); clearSerial();
+  let factory;
+  try {
+    const { js } = transpile(codeEl.value);
+    const body = js + '\n;return { setup: typeof setup === "function" ? setup : null, loop: typeof loop === "function" ? loop : null };';
+    const keys = Object.keys(API);
+    factory = { keys, fn: new AsyncFunction(...keys, '__tick', body) };
+  } catch (e) {
+    setStatus('error', 'Error');
+    sysLine('err', "The simulator couldn't read this sketch. " + (e instanceof SyntaxError && /braces|brackets|semicolon/.test(e.message) ? e.message : 'Look for a missing semicolon, bracket or quote mark. (' + e.message + ')'));
+    return;
+  }
+  const tick = () => { if (token !== runToken) throw STOP; if (performance.now() - lastYield > 12) return sleep(0); };
+  startTime = performance.now(); lastYield = startTime;
+  setStatus('running', 'Running');
+  try {
+    const prog = await factory.fn(...factory.keys.map(k => API[k]), tick);
+    if (!prog.setup || !prog.loop){ sysLine('err', 'Every sketch needs both void setup() { } and void loop() { }.'); setStatus('error', 'Error'); return; }
+    await prog.setup();
+    while (token === runToken){ await prog.loop(); await sleep(0); }
+  } catch (e) {
+    if (e === STOP || token !== runToken) return;
+    sysLine('err', friendly(e)); setStatus('error', 'Error'); audioOff();
+  }
+}
+function stop(){ runToken++; setStatus('stopped', 'Stopped'); sim.tone = null; audioOff(); }
+
+/* ---------- Audio ---------- */
+function ensureAudio(){
+  if (!soundOn) return;
+  try {
+    if (!actx){
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      actx = new AC(); osc = actx.createOscillator(); osc.type = 'square';
+      gainNode = actx.createGain(); gainNode.gain.value = 0;
+      osc.connect(gainNode).connect(actx.destination); osc.start();
+    }
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) {}
+}
+function audioTone(f){ if (!actx || !soundOn) return; try { osc.frequency.setValueAtTime(f, actx.currentTime); gainNode.gain.setTargetAtTime(0.05, actx.currentTime, 0.004); } catch (e) {} }
+function audioOff(){ if (!actx) return; try { gainNode.gain.setTargetAtTime(0, actx.currentTime, 0.008); } catch (e) {} }
+
+/* ---------- Serial monitor ---------- */
+const serialEl = document.getElementById('serial');
+let serialLines = [], serialOpen = false, serialDirty = true;
+function serialWrite(text, nl){
+  String(text).split('\n').forEach((seg, i) => {
+    if (i > 0) serialOpen = false;
+    if (serialOpen) serialLines[serialLines.length - 1].t += seg; else { serialLines.push({ k: 'out', t: seg }); serialOpen = true; }
+  });
+  if (nl) serialOpen = false;
+  if (serialLines.length > 300) serialLines.splice(0, serialLines.length - 300);
+  serialDirty = true;
+}
+function sysLine(k, t){ serialLines.push({ k, t }); serialOpen = false; serialDirty = true; }
+function clearSerial(){ serialLines = []; serialOpen = false; serialDirty = true; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function renderSerial(){
+  if (!serialDirty) return; serialDirty = false;
+  const atBottom = serialEl.scrollHeight - serialEl.scrollTop - serialEl.clientHeight < 40;
+  serialEl.innerHTML = serialLines.length ? serialLines.map(l => `<div class="ln ${l.k}">${esc(l.t) || '&nbsp;'}</div>`).join('') : '<div class="ln sys">Waiting for output…</div>';
+  if (atBottom) serialEl.scrollTop = serialEl.scrollHeight;
+}
+
+/* ---------- Drawing ---------- */
+const svg = document.getElementById('stage');
+const WIRE_COLORS = ['#f2a516', '#2a9fd6', '#e5533d', '#6cc24a', '#a564d8', '#e05a9c', '#20b2aa', '#f08c3a'];
+const RES = (x, y, bands, w = 12, h = 28) => `<rect x="${x - w / 2}" y="${y}" width="${w}" height="${h}" rx="4" fill="#d9c6a1" stroke="#a88e64" stroke-width=".8"/>` +
+  bands.map((c, k) => `<rect x="${x - w / 2}" y="${y + 5 + k * 5.5}" width="${w}" height="2.6" fill="${c}"/>`).join('') +
+  `<rect x="${x - w / 2}" y="${y + h - 7}" width="${w}" height="2.6" fill="#c9a227"/>`;
+const R220 = ['#c0392b', '#c0392b', '#5b3a1e'], R10K = ['#5b3a1e', '#1b1b1b', '#e67e22'];
+const ln = (x1, y1, x2, y2) => `<line class="lead" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+const pl = pts => `<polyline class="lead" points="${pts}"/>`;
+const pinHead = x => `<rect x="${x - 3}" y="-3" width="6" height="6" rx="1" fill="#1a1d20"/><rect x="${x - 1.4}" y="-1.4" width="2.8" height="2.8" fill="#c9a227"/>`;
+
+const PARTS = {
+  led: { w: 50, h: 130, sig: p => [[25, p.pin]], gnd: 25,
+    svg: (p, i) => pinHead(25) + ln(25, 0, 25, 14) + RES(25, 14, R220) + ln(25, 42, 25, 60) +
+      `<circle id="p${i}-glow" cx="25" cy="78" r="26" fill="${p.color}" opacity="0" filter="url(#glow)"/>` +
+      `<path d="M13 90 V76 a12 12 0 0 1 24 0 V90 Z" fill="${p.color}" fill-opacity=".25" stroke="${p.color}" stroke-opacity=".7"/>` +
+      `<path id="p${i}-on" d="M13 90 V76 a12 12 0 0 1 24 0 V90 Z" fill="${p.color}" opacity="0"/>` +
+      `<path d="M19 74 a6 6 0 0 1 6 -6" stroke="#fff" stroke-opacity=".6" stroke-width="2" fill="none"/>` +
+      `<rect x="11" y="90" width="28" height="4" rx="1" fill="${p.color}" opacity=".55"/>` + ln(25, 94, 25, 130) },
+  rgb: { w: 70, h: 130, sig: p => [[15, p.pins[0]], [35, p.pins[1]], [55, p.pins[2]]], gnd: 35,
+    svg: (p, i) => [15, 35, 55].map((x, k) => pinHead(x) + ln(x, 0, x, 10) + RES(x, 10, R220, 10, 26) + ln(x, 36, [29, 35, 41][k], 68)).join('') +
+      `<circle id="p${i}-glow" cx="35" cy="84" r="28" fill="#fff" opacity="0" filter="url(#glow)"/>` +
+      `<path d="M23 98 V84 a12 12 0 0 1 24 0 V98 Z" fill="#eef3f3" fill-opacity=".6" stroke="#b6c1c4"/>` +
+      `<path id="p${i}-on" d="M23 98 V84 a12 12 0 0 1 24 0 V98 Z" fill="#fff" opacity="0"/>` +
+      `<rect x="21" y="98" width="28" height="4" rx="1" fill="#dfe6e7"/>` + ln(35, 102, 35, 130) +
+      `<text x="15" y="-7" text-anchor="middle" font-size="8" font-family="var(--f-mono)" fill="var(--muted)">R</text><text x="35" y="-7" text-anchor="middle" font-size="8" font-family="var(--f-mono)" fill="var(--muted)">G</text><text x="55" y="-7" text-anchor="middle" font-size="8" font-family="var(--f-mono)" fill="var(--muted)">B</text>` },
+  button: { w: 60, h: 130, sig: p => [[30, p.pin]], gnd: 30,
+    svg: (p, i) => pinHead(30) + ln(30, 0, 30, 44) +
+      `<rect x="12" y="44" width="36" height="36" rx="3" fill="#2c3237" stroke="#14181b"/>` +
+      [[17, 49], [43, 49], [17, 75], [43, 75]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.2" fill="#7d868d"/>`).join('') +
+      `<g id="p${i}-btn" style="cursor:pointer"><circle cx="30" cy="62" r="16" fill="transparent"/><circle id="p${i}-cap" cx="30" cy="62" r="11" fill="#e8e0ca" stroke="#a29a84"/></g>` +
+      ln(30, 80, 30, 130) },
+  pot: { w: 70, h: 130, sig: p => [[35, p.apin]], vcc: 15, gnd: 55,
+    svg: (p, i) => pinHead(35) + ln(35, 0, 35, 35) +
+      `<circle cx="35" cy="62" r="27" fill="#2f6db0" stroke="#1d4f86"/><circle cx="35" cy="62" r="16" fill="#f1f1ee" stroke="#c6c6c1"/>` +
+      `<g id="p${i}-ptr"><line x1="35" y1="62" x2="35" y2="49" stroke="#2a2f33" stroke-width="3" stroke-linecap="round"/></g>` +
+      pl('22,85 15,95 15,130') + pl('48,85 55,95 55,130') },
+  ldr: { w: 60, h: 130, sig: p => [[48, p.apin]], vcc: 8, gnd: 30,
+    svg: (p, i) => pinHead(48) + pl('48,0 48,62 30,62') + `<circle cx="30" cy="62" r="2.6" fill="var(--lead)"/>` +
+      `<circle id="p${i}-halo" cx="30" cy="36" r="22" fill="#ffd65a" opacity=".5" filter="url(#glow)"/>` +
+      pl('30,23 30,13 8,13 8,130') + ln(30, 49, 30, 62) +
+      `<circle cx="30" cy="36" r="13" fill="#f2dcaa" stroke="#b28947"/><path d="M22 29 h16 v4 h-16 v4 h16 v4 h-16" stroke="#b5651d" stroke-width="1.4" fill="none"/>` +
+      ln(30, 62, 30, 70) + RES(30, 70, R10K, 10, 28) + ln(30, 98, 30, 130) },
+  tmp36: { w: 50, h: 130, sig: p => [[25, p.apin]], vcc: 15, gnd: 35,
+    svg: (p, i) => pinHead(25) + ln(25, 0, 25, 42) +
+      `<path d="M9 78 V58 a16 16 0 0 1 32 0 V78 Z" fill="#1d2023"/><text x="25" y="72" text-anchor="middle" font-size="6.5" font-family="var(--f-mono)" fill="#c8cdd1">TMP36</text>` +
+      ln(15, 78, 15, 130) + ln(35, 78, 35, 130) +
+      `<text id="p${i}-t" x="25" y="106" text-anchor="middle" font-size="9" font-family="var(--f-mono)" fill="var(--muted)" paint-order="stroke" stroke="var(--mat)" stroke-width="3"></text>` },
+  buzzer: { w: 70, h: 130, sig: p => [[35, p.pin]], gnd: 35,
+    svg: (p, i) => pinHead(35) + ln(35, 0, 35, 37) +
+      `<circle cx="35" cy="62" r="25" fill="#1c1f22" stroke="#000"/><circle cx="35" cy="62" r="18" fill="none" stroke="#2c3135"/><circle cx="35" cy="62" r="4.5" fill="#3b4045"/>` +
+      `<text x="24" y="50" font-size="9" font-family="var(--f-mono)" fill="#c4c9cd">+</text>` +
+      `<g id="p${i}-waves" opacity="0" stroke="var(--copper)" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M65 51 q7 11 0 22"/><path d="M71 45 q11 17 0 34"/><path d="M5 51 q-7 11 0 22"/><path d="M-1 45 q-11 17 0 34"/></g>` +
+      ln(35, 87, 35, 130) },
+  ultra: { w: 130, h: 130, sig: p => [[55, p.trig], [75, p.echo]], vcc: 45, gnd: 85,
+    svg: (p, i) => pinHead(55) + pinHead(75) + ln(55, 0, 55, 40) + ln(75, 0, 75, 40) +
+      `<g id="p${i}-ping" opacity="0" stroke="var(--accent)" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 31 q15 -12 30 0"/><path d="M12 24 q21 -16 42 0"/><path d="M82 31 q15 -12 30 0"/><path d="M76 24 q21 -16 42 0"/></g>` +
+      `<rect x="3" y="40" width="124" height="52" rx="4" fill="#1d5aa6" stroke="#123f78"/>` +
+      [33, 97].map(x => `<circle cx="${x}" cy="66" r="21" fill="#cfd4d9" stroke="#8b939a"/><circle cx="${x}" cy="66" r="15" fill="#8f979e"/><circle cx="${x}" cy="66" r="15" fill="url(#mesh)"/>`).join('') +
+      `<text x="55" y="49" text-anchor="middle" font-size="5.5" font-family="var(--f-mono)" fill="#e6eef8">TRIG</text><text x="75" y="49" text-anchor="middle" font-size="5.5" font-family="var(--f-mono)" fill="#e6eef8">ECHO</text>` +
+      ln(45, 92, 45, 130) + ln(85, 92, 85, 130) },
+  servo: { w: 100, h: 130, sig: p => [[82, p.pin]], vcc: 55, gnd: 70,
+    svg: (p, i) => pinHead(82) + ln(82, 0, 82, 44) +
+      `<rect x="2" y="62" width="96" height="12" rx="3" fill="#2350a0"/><rect x="12" y="44" width="76" height="46" rx="4" fill="#2b62c0" stroke="#1c4592"/>` +
+      `<text x="62" y="84" text-anchor="middle" font-size="7" font-family="var(--f-mono)" fill="#cfe0ff">SERVO</text>` +
+      `<circle cx="34" cy="56" r="11" fill="#e9ecef" stroke="#aab3ba"/>` +
+      `<g id="p${i}-horn"><path d="M30 56 L31 25 a3.5 3.5 0 0 1 7 0 L38 56 Z" fill="#f6f7f8" stroke="#aab3ba"/><circle cx="34" cy="56" r="4" fill="#c9ced3"/></g>` +
+      ln(55, 90, 55, 130) + ln(70, 90, 70, 130) },
+  motor: { w: 100, h: 130, sig: p => [[14, p.pin]], vcc: 96, gnd: 8,
+    svg: (p, i) => pinHead(14) + ln(14, 0, 14, 38) +
+      `<path d="M4 62 V48 a10 10 0 0 1 20 0 V62 Z" fill="#1d2023"/>` + pl('20,62 20,71 40,71') + ln(8, 62, 8, 130) +
+      `<rect x="40" y="54" width="48" height="34" rx="8" fill="#b9c0c7" stroke="#858d95"/><rect x="84" y="60" width="8" height="22" rx="2" fill="#9aa2aa"/>` +
+      ln(64, 54, 64, 32) +
+      `<g id="p${i}-fan">${[0, 120, 240].map(a => `<ellipse cx="64" cy="19" rx="4.5" ry="11" fill="var(--copper)" opacity=".9" transform="rotate(${a} 64 30)"/>`).join('')}<circle cx="64" cy="30" r="3.5" fill="#5b636b"/></g>` +
+      `<rect x="46" y="96" width="36" height="7" rx="2" fill="#222"/><rect x="74" y="96" width="4" height="7" fill="#ddd"/>` + pl('46,99 42,99 42,88') + pl('82,99 92,99 92,82') +
+      pl('88,72 96,72 96,130') },
+  stepper: { w: 150, h: 140, sig: p => p.pins.map((pin, k) => [10 + k * 14, pin]), vcc: 18, gnd: 46,
+    svg: (p, i) => [0, 1, 2, 3].map(k => pinHead(10 + k * 14) + ln(10 + k * 14, 0, 10 + k * 14, 34)).join('') +
+      `<rect x="0" y="34" width="64" height="72" rx="4" fill="#1f7a48" stroke="#145a33"/><rect x="8" y="46" width="20" height="46" rx="1" fill="#1a1c1e"/>` +
+      `<text x="18" y="69" text-anchor="middle" font-size="5.5" font-family="var(--f-mono)" fill="#aab" transform="rotate(-90 18 69)">ULN2003</text>` +
+      [0, 1, 2, 3].map(k => `<circle id="p${i}-c${k}" cx="44" cy="${50 + k * 12}" r="4" fill="#5a1d1d"/><text x="54" y="${53 + k * 12}" font-size="7" font-family="var(--f-mono)" fill="#cfe9d8">${'ABCD'[k]}</text>`).join('') +
+      `<path d="M64 72 C74 72 74 72 82 72" stroke="#d98b2b" stroke-width="5" fill="none"/>` +
+      `<circle cx="112" cy="72" r="32" fill="#c7ccd1" stroke="#8a9298"/><circle cx="112" cy="72" r="22" fill="#b2b8be"/>` +
+      `<g id="p${i}-rotor"><line x1="112" y1="72" x2="112" y2="50" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/><circle cx="112" cy="72" r="5" fill="#6b7278"/></g>` +
+      ln(18, 106, 18, 140) + ln(46, 106, 46, 140) },
+  lcd: { w: 190, h: 130, sig: () => [[20, 12], [40, 11], [60, 5], [80, 4], [100, 3], [120, 2]], vcc: 150, gnd: 170,
+    svg: (p, i) => [20, 40, 60, 80, 100, 120].map(x => pinHead(x) + ln(x, 0, x, 30)).join('') +
+      `<rect x="0" y="30" width="190" height="80" rx="4" fill="#20763f" stroke="#155a2e"/>` +
+      ['RS', 'E', 'D4', 'D5', 'D6', 'D7'].map((t, k) => `<text x="${20 + k * 20}" y="38" text-anchor="middle" font-size="5.5" font-family="var(--f-mono)" fill="#d6f0dc">${t}</text>`).join('') +
+      `<rect x="8" y="41" width="174" height="60" rx="2" fill="#1b1d1f"/><rect x="14" y="47" width="162" height="48" fill="#9fd04a"/>` +
+      [0, 1].map(r => Array.from({ length: 16 }, (_, c) => `<rect x="${17 + c * 9.75}" y="${51 + r * 21}" width="8.6" height="18" fill="#93c53f"/>`).join('')).join('') +
+      [0, 1].map(r => `<text id="p${i}-l${r}" x="17.5" y="${65 + r * 21}" font-size="14" font-family="var(--f-mono)" font-weight="600" fill="#1d3a0e" textLength="155" lengthAdjust="spacingAndGlyphs"></text>`).join('') +
+      ln(150, 110, 150, 130) + ln(170, 110, 170, 130) },
+  soil: { w: 60, h: 140, sig: p => [[30, p.apin]], vcc: 6, gnd: 54,
+    svg: (p, i) => pinHead(30) + ln(30, 0, 30, 26) + pl('22,26 22,18 6,18 6,140') + pl('38,26 38,18 54,18 54,140') +
+      `<rect x="14" y="26" width="32" height="34" rx="3" fill="#141414"/><rect x="22" y="32" width="16" height="10" fill="#333"/>` +
+      `<path d="M18 60 H42 V120 L30 132 L18 120 Z" fill="#141414"/><line x1="18" y1="80" x2="42" y2="80" stroke="#e6e6e6" stroke-width="1"/>` +
+      `<rect id="p${i}-soil" x="0" y="96" width="60" height="44" rx="3" fill="#9b6b43" opacity=".93"/>` }
+};
+
+function layoutFor(tall){
+  return tall ? { tall, W: 400, H: 592, bx: 50, by: 52, x0: 30, x1: 394, baseY: 522, y5: 550, yG: 568 }
+              : { tall, W: 780, H: 352, bx: 16, by: 56, x0: 354, x1: 774, baseY: 298, y5: 318, yG: 336 };
+}
+function pinXY(L, pin){
+  if (pin >= 14) return [L.bx + 206 + (pin - 14) * 14, L.by + 204];
+  return [L.bx + 110 + (13 - pin) * 13.6, L.by + 16];
+}
+function rounded(pts, r = 6){
+  let d = `M${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++){
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+    const d1 = Math.hypot(x1 - x0, y1 - y0), d2 = Math.hypot(x2 - x1, y2 - y1);
+    if (!d1 || !d2){ d += ` L${x1} ${y1}`; continue; }
+    const rr = Math.min(r, d1 / 2, d2 / 2);
+    d += ` L${x1 - (x1 - x0) / d1 * rr} ${y1 - (y1 - y0) / d1 * rr} Q${x1} ${y1} ${x1 + (x2 - x1) / d2 * rr} ${y1 + (y2 - y1) / d2 * rr}`;
+  }
+  const l = pts[pts.length - 1];
+  return d + ` L${l[0]} ${l[1]}`;
+}
+function boardSVG(bx, by){
+  let s = `<g transform="translate(${bx} ${by})">`;
+  s += `<rect width="300" height="220" rx="12" fill="#13606a" stroke="#0a434a" stroke-width="2"/>`;
+  s += `<rect x="6" y="6" width="288" height="208" rx="9" fill="none" stroke="#1b7680" stroke-width="1"/>`;
+  s += [[14, 14], [286, 14], [14, 206], [252, 206]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="var(--mat)" stroke="#c9a54a" stroke-width="1.5"/>`).join('');
+  s += `<rect x="-10" y="26" width="46" height="40" rx="3" fill="#b9c0c6" stroke="#7d868d"/><rect x="-4" y="34" width="30" height="24" fill="#8e979e"/>`;
+  s += `<rect x="-8" y="146" width="44" height="34" rx="3" fill="#1f2326"/><circle cx="6" cy="163" r="7" fill="#0c0d0e"/>`;
+  s += `<rect x="52" y="10" width="18" height="18" rx="3" fill="#d6d6d6"/><circle cx="61" cy="19" r="5" fill="#b8352a"/><text x="61" y="38" text-anchor="middle" font-size="6.5" class="lbl">RESET</text>`;
+  s += `<rect id="bL" x="72" y="50" width="11" height="6" rx="1" fill="#4a3a14"/><text x="88" y="56" font-size="7.5" class="lbl">L</text>`;
+  s += `<rect id="bTX" x="72" y="64" width="11" height="6" rx="1" fill="#4a3a14"/><text x="88" y="70" font-size="7.5" class="lbl">TX</text>`;
+  s += `<rect x="72" y="92" width="11" height="6" rx="1" fill="#3ddc5f"/><text x="88" y="98" font-size="7.5" class="lbl">ON</text>`;
+  s += `<rect x="54" y="118" width="34" height="13" rx="6.5" fill="#cfd5da" stroke="#8d969d"/><text x="71" y="141" text-anchor="middle" font-size="6" class="lbl">16 MHz</text>`;
+  s += `<rect x="118" y="116" width="156" height="32" rx="2" fill="#1a1c1f"/><circle cx="124" cy="132" r="3" fill="#2c2f33"/>`;
+  for (let k = 0; k < 14; k++) s += `<rect x="${123 + k * 10.6}" y="111" width="4" height="5" fill="#c3c9ce"/><rect x="${123 + k * 10.6}" y="148" width="4" height="5" fill="#c3c9ce"/>`;
+  s += `<text x="196" y="135" text-anchor="middle" font-size="9" font-family="var(--f-mono)" fill="#a0a8ad">ATmega328P</text>`;
+  s += `<text x="196" y="96" text-anchor="middle" font-size="9" letter-spacing="2" font-family="var(--f-display)" fill="#7cc0bd">UNO LAYOUT</text>`;
+  s += `<rect x="103" y="8" width="191" height="16" rx="2" fill="#16181a"/>`;
+  for (let p = 0; p <= 13; p++){
+    const x = 110 + (13 - p) * 13.6;
+    s += `<rect x="${x - 3.5}" y="12.5" width="7" height="7" fill="#0b0c0d"/><rect x="${x - 1.5}" y="14.5" width="3" height="3" fill="#c9a227"/>`;
+    s += `<text x="${x}" y="34" text-anchor="middle" font-size="7" class="lbl">${PWM_PINS.includes(p) ? '~' : ''}${p}</text>`;
+  }
+  s += `<text x="198" y="46" text-anchor="middle" font-size="6.5" class="lbl" opacity=".75">DIGITAL  (~ PWM)</text>`;
+  s += `<rect x="130" y="196" width="166" height="16" rx="2" fill="#16181a"/>`;
+  const bottom = [[144, '5V'], [158, 'GND']].concat([0, 1, 2, 3, 4, 5].map(k => [206 + k * 14, 'A' + k]));
+  for (const [x, t] of bottom){
+    s += `<rect x="${x - 3.5}" y="200.5" width="7" height="7" fill="#0b0c0d"/><rect x="${x - 1.5}" y="202.5" width="3" height="3" fill="#c9a227"/>`;
+    s += `<text x="${x}" y="191" text-anchor="middle" font-size="6.5" class="lbl">${t}</text>`;
+  }
+  s += `<text x="151" y="180" text-anchor="middle" font-size="6.5" class="lbl" opacity=".75">POWER</text><text x="241" y="180" text-anchor="middle" font-size="6.5" class="lbl" opacity=".75">ANALOG IN</text>`;
+  return s + '</g>';
+}
+
+let L = null, els = [], boardEls = {};
+function buildStage(){
+  const tall = (document.getElementById('stageWrap').clientWidth || 800) < 560;
+  L = layoutFor(tall);
+  svg.setAttribute('viewBox', `0 0 ${L.W} ${L.H}`);
+  let s = `<defs><filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>` +
+    `<pattern id="mesh" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".7" fill="#6f777e"/></pattern></defs>`;
+  s += `<rect x="0" y="0" width="${L.W}" height="${L.H}" rx="12" fill="var(--mat)"/>`;
+  const rx0 = L.tall ? 12 : 10, rx1 = L.W - 8;
+  s += `<line x1="${rx0}" y1="${L.y5}" x2="${rx1}" y2="${L.y5}" stroke="#d63a3a" stroke-width="3" stroke-linecap="round"/>`;
+  s += `<line x1="${rx0}" y1="${L.yG}" x2="${rx1}" y2="${L.yG}" stroke="var(--rail-gnd)" stroke-width="3" stroke-linecap="round"/>`;
+  s += `<text class="rail-lbl" x="${rx1}" y="${L.y5 - 5}" text-anchor="end">5V</text><text class="rail-lbl" x="${rx1}" y="${L.yG + 13}" text-anchor="end">GND</text>`;
+  const [p5x, p5y] = [L.bx + 144, L.by + 204], [pgx, pgy] = [L.bx + 158, L.by + 204];
+  const pw5 = L.tall ? [[p5x, p5y], [p5x, L.by + 228], [12, L.by + 228], [12, L.y5]] : [[p5x, p5y], [p5x, L.y5]];
+  const pwg = L.tall ? [[pgx, pgy], [pgx, L.by + 234], [20, L.by + 234], [20, L.yG]] : [[pgx, pgy], [pgx, L.yG]];
+  s += `<path class="wire-sh" d="${rounded(pw5)}"/><path class="wire" stroke="#d63a3a" d="${rounded(pw5)}"/>`;
+  s += `<path class="wire-sh" d="${rounded(pwg)}"/><path class="wire" stroke="var(--rail-gnd)" d="${rounded(pwg)}"/>`;
+  s += boardSVG(L.bx, L.by);
+
+  // place parts
+  const defs = parts.map(p => PARTS[p.type]);
+  const total = defs.reduce((a, d) => a + d.w, 0), avail = L.x1 - L.x0;
+  const gap = parts.length ? Math.min(36, (avail - total) / (parts.length + 1)) : 0;
+  let x = L.x0 + (avail - total - gap * (parts.length - 1)) / 2;
+  const pos = defs.map(d => { const px = x; x += d.w + gap; return [px, L.baseY - d.h]; });
+
+  // power drops
+  defs.forEach((d, i) => {
+    const [px] = pos[i];
+    if (d.vcc !== undefined) s += `<line x1="${px + d.vcc}" y1="${L.baseY}" x2="${px + d.vcc}" y2="${L.y5}" stroke="#d63a3a" stroke-width="2.2"/><circle cx="${px + d.vcc}" cy="${L.y5}" r="3" fill="#d63a3a"/>`;
+    if (d.gnd !== undefined) s += `<line x1="${px + d.gnd}" y1="${L.baseY}" x2="${px + d.gnd}" y2="${L.yG}" stroke="var(--rail-gnd)" stroke-width="2.2"/><circle cx="${px + d.gnd}" cy="${L.yG}" r="3" fill="var(--rail-gnd)"/>`;
+  });
+
+  // signal wires
+  const wires = [];
+  defs.forEach((d, i) => d.sig(parts[i]).forEach(([tx, pin]) => wires.push({ pin, tx: pos[i][0] + tx, ty: pos[i][1] })));
+  wires.forEach(w => { const [sx, sy] = pinXY(L, w.pin); w.sx = sx; w.sy = sy; w.span = Math.abs(w.tx - sx); });
+  const topW = wires.filter(w => w.pin < 14).sort((a, b) => a.span - b.span);
+  const anaW = wires.filter(w => w.pin >= 14);
+  let colorIdx = 0, laneK = 0;
+  const paths = [];
+  topW.forEach((w, k) => {
+    const laneY = L.by - 7 - k * 5;
+    let pts;
+    if (!L.tall) pts = [[w.sx, w.sy], [w.sx, laneY], [w.tx, laneY], [w.tx, w.ty]];
+    else { const xr = 357 + k * 4, laneT = L.by + 242 + (laneK++) * 6; pts = [[w.sx, w.sy], [w.sx, laneY], [xr, laneY], [xr, laneT], [w.tx, laneT], [w.tx, w.ty]]; }
+    paths.push([pts, WIRE_COLORS[colorIdx++ % WIRE_COLORS.length]]);
+  });
+  anaW.forEach((w, k) => {
+    let pts;
+    if (!L.tall){ const laneB = L.by + 228 + k * 5, xc = 324 + k * 4, laneT = w.ty - 14 - k * 5; pts = [[w.sx, w.sy], [w.sx, laneB], [xc, laneB], [xc, laneT], [w.tx, laneT], [w.tx, w.ty]]; }
+    else { const laneT = L.by + 242 + (laneK++) * 6; pts = [[w.sx, w.sy], [w.sx, laneT], [w.tx, laneT], [w.tx, w.ty]]; }
+    paths.push([pts, WIRE_COLORS[colorIdx++ % WIRE_COLORS.length]]);
+  });
+  for (const [pts, c] of paths){
+    const d = rounded(pts);
+    s += `<path class="wire-sh" d="${d}"/><path class="wire" stroke="${c}" d="${d}"/><circle cx="${pts[0][0]}" cy="${pts[0][1]}" r="2.6" fill="${c}"/>`;
+  }
+  defs.forEach((d, i) => { s += `<g transform="translate(${pos[i][0]} ${pos[i][1]})">${d.svg(parts[i], i)}</g>`; });
+  if (!parts.length){
+    const cx = (L.x0 + L.x1) / 2, cy = L.tall ? 420 : 190;
+    s += `<text x="${cx}" y="${cy}" text-anchor="middle" font-size="13" font-family="var(--f-body)" fill="var(--muted)">Nothing wired yet.</text><text x="${cx}" y="${cy + 18}" text-anchor="middle" font-size="11" font-family="var(--f-body)" fill="var(--muted)">Output appears in the serial monitor.</text>`;
+  }
+  svg.innerHTML = s;
+  const g = id => svg.querySelector('#' + id);
+  boardEls = { L: g('bL'), TX: g('bTX') };
+  els = parts.map((p, i) => ({ glow: g(`p${i}-glow`), on: g(`p${i}-on`), cap: g(`p${i}-cap`), btn: g(`p${i}-btn`), ptr: g(`p${i}-ptr`), halo: g(`p${i}-halo`),
+    t: g(`p${i}-t`), waves: g(`p${i}-waves`), ping: g(`p${i}-ping`), horn: g(`p${i}-horn`), fan: g(`p${i}-fan`), rotor: g(`p${i}-rotor`),
+    c: [0, 1, 2, 3].map(k => g(`p${i}-c${k}`)), l: [g(`p${i}-l0`), g(`p${i}-l1`)], soil: g(`p${i}-soil`), angle: 0 }));
+  els.forEach((e, i) => { if (e.btn) bindHold(e.btn, i); });
+}
+
+/* ---------- Inputs panel ---------- */
+const INPUT_DEF = {
+  pot: { label: 'Knob position', min: 0, max: 1023, step: 1, def: 512, show: v => Math.round(v / 10.23) + '%' },
+  ldr: { label: 'Light level', min: 0, max: 100, step: 1, def: 65, show: v => v + '%' },
+  tmp36: { label: 'Air temperature', min: -10, max: 50, step: 0.5, def: 22, show: v => (+v).toFixed(1) + ' °C' },
+  ultra: { label: 'Distance to object', min: 2, max: 300, step: 1, def: 120, show: v => v + ' cm' },
+  soil: { label: 'Soil moisture', min: 0, max: 100, step: 1, def: 55, show: v => v + '%' }
+};
+const inputsEl = document.getElementById('inputs');
+function buildInputs(){
+  sim.inputs = parts.map(p => INPUT_DEF[p.type] ? INPUT_DEF[p.type].def : 0);
+  sim.pressed = parts.map(() => false);
+  let h = '';
+  parts.forEach((p, i) => {
+    const d = INPUT_DEF[p.type];
+    if (d) h += `<div class="inp"><label for="in${i}"><span>${d.label}</span><output id="out${i}">${d.show(d.def)}</output></label><input type="range" id="in${i}" min="${d.min}" max="${d.max}" step="${d.step}" value="${d.def}"></div>`;
+    if (p.type === 'button') h += `<div class="inp"><label for="hold${i}"><span>Pushbutton on pin ${p.pin}</span><output id="out${i}">Up</output></label><button type="button" class="hold" id="hold${i}">Hold to press</button></div>`;
+  });
+  inputsEl.innerHTML = h ? `<div class="inputs">${h}</div>` : `<p class="noinputs">This lesson has no inputs to change. Edit the sketch and press Run.</p>`;
+  parts.forEach((p, i) => {
+    const d = INPUT_DEF[p.type];
+    if (d){ const r = document.getElementById('in' + i), o = document.getElementById('out' + i);
+      r.addEventListener('input', () => { sim.inputs[i] = +r.value; o.textContent = d.show(r.value); }); }
+    if (p.type === 'button') bindHold(document.getElementById('hold' + i), i);
+  });
+}
+function setPressed(i, v){
+  sim.pressed[i] = v;
+  const b = document.getElementById('hold' + i), o = document.getElementById('out' + i);
+  if (b) b.classList.toggle('down', v);
+  if (o) o.textContent = v ? 'Pressed' : 'Up';
+}
+function bindHold(el, i){
+  const down = e => { e.preventDefault(); ensureAudio(); setPressed(i, true); try { el.setPointerCapture && e.pointerId !== undefined && el.setPointerCapture(e.pointerId); } catch (x) {} };
+  const up = () => setPressed(i, false);
+  el.addEventListener('pointerdown', down);
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+  el.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat){ e.preventDefault(); setPressed(i, true); } });
+  el.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') setPressed(i, false); });
+}
+
+/* ---------- Animation ---------- */
+function bright(pin){
+  const s = sim.pins[pin]; if (!s) return 0;
+  if (s.pwm !== null) return s.pwm / 255;
+  if (!s.out) return 0;
+  return s.mode === OUTPUT ? 1 : 0.12;
+}
+let lastT = performance.now();
+function frame(t){
+  const dt = Math.min(60, t - lastT); lastT = t;
+  if (sim.tone && t > sim.tone.until){ sim.tone = null; audioOff(); }
+  if (boardEls.L){
+    const b = bright(13);
+    boardEls.L.setAttribute('fill', b > 0.02 ? `rgba(255,190,40,${0.35 + 0.65 * b})` : '#4a3a14');
+    boardEls.TX.setAttribute('fill', t - sim.txFlash < 70 ? '#ffbe28' : '#4a3a14');
+  }
+  parts.forEach((p, i) => {
+    const e = els[i]; if (!e) return;
+    switch (p.type){
+      case 'led': { const b = bright(p.pin); e.on.setAttribute('opacity', b.toFixed(3)); e.glow.setAttribute('opacity', (b * 0.75).toFixed(3)); break; }
+      case 'rgb': {
+        const v = p.pins.map(bright), m = Math.max(...v);
+        const col = m > 0 ? `rgb(${v.map(x => Math.round(x / m * 255)).join(',')})` : '#fff';
+        e.on.setAttribute('fill', col); e.on.setAttribute('opacity', m.toFixed(3));
+        e.glow.setAttribute('fill', col); e.glow.setAttribute('opacity', (m * 0.8).toFixed(3)); break; }
+      case 'button': e.cap.setAttribute('fill', sim.pressed[i] ? 'var(--copper)' : '#e8e0ca'); e.cap.setAttribute('r', sim.pressed[i] ? 10 : 11); break;
+      case 'pot': e.ptr.setAttribute('transform', `rotate(${-135 + sim.inputs[i] / 1023 * 270} 35 62)`); break;
+      case 'ldr': e.halo.setAttribute('opacity', (sim.inputs[i] / 100 * 0.85).toFixed(2)); break;
+      case 'tmp36': e.t.textContent = (+sim.inputs[i]).toFixed(1) + ' °C'; break;
+      case 'buzzer': { const on = sim.tone && sim.tone.pin === p.pin; e.waves.setAttribute('opacity', on ? (0.55 + 0.45 * Math.sin(t / 70)).toFixed(2) : 0); break; }
+      case 'ultra': e.ping.setAttribute('opacity', Math.max(0, 1 - (t - sim.ping) / 260).toFixed(2)); break;
+      case 'servo': {
+        const sv = sim.servos[p.pin];
+        if (sv){ const diff = sv.target - sv.shown, maxStep = dt * 0.5; sv.shown += Math.abs(diff) <= maxStep ? diff : Math.sign(diff) * maxStep; e.angle = sv.shown; }
+        e.horn.setAttribute('transform', `rotate(${(e.angle || 0) - 90} 34 56)`); break; }
+      case 'motor': { const sp = bright(p.pin); const eff = sp < 0.18 ? 0 : sp; e.angle = (e.angle + eff * dt * 1.1) % 360; e.fan.setAttribute('transform', `rotate(${e.angle} 64 30)`); break; }
+      case 'stepper': {
+        p.pins.forEach((pin, k) => e.c[k].setAttribute('fill', sim.pins[pin] && sim.pins[pin].out ? '#ff4a3d' : '#5a1d1d'));
+        const pos = sim.stepper ? sim.stepper.pos / sim.stepper.spr * 360 : 0;
+        e.rotor.setAttribute('transform', `rotate(${pos} 112 72)`); break; }
+      case 'lcd': {
+        const on = sim.lcd && sim.lcd.on;
+        for (let r = 0; r < 2; r++){ const txt = on ? sim.lcd.buf[r].join('') : ' '.repeat(16); const show = txt.replace(/ /g, ' '); if (e.l[r].textContent !== show) e.l[r].textContent = show; }
+        break; }
+      case 'soil': {
+        const m = sim.inputs[i] / 100, a = [185, 140, 92], b = [70, 46, 30];
+        e.soil.setAttribute('fill', `rgb(${a.map((c, k) => Math.round(c + (b[k] - c) * m)).join(',')})`); break; }
+    }
+  });
+  renderSerial();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- UI ---------- */
+const codeEl = document.getElementById('code');
+const statusEl = document.getElementById('status');
+function setStatus(s, text){ statusEl.dataset.s = s; document.getElementById('statusText').textContent = text; }
+const inline = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+let done = new Set(store.get('done', []));
+
+function buildRail(){
+  const groups = [];
+  LESSONS.forEach((l, i) => { let g = groups.find(x => x.name === l.group); if (!g) groups.push(g = { name: l.group, items: [] }); g.items.push(i); });
+  const tick = `<svg class="tick" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  document.getElementById('rail').innerHTML = groups.map(g => `<h2>${g.name}</h2><ol>${g.items.map(i =>
+    `<li><button type="button" data-i="${i}" class="${done.has(i) ? 'done' : ''}"><span class="num">${String(i + 1).padStart(2, '0')}</span><span>${esc(LESSONS[i].title)}</span>${tick}</button></li>`).join('')}</ol>`).join('');
+  document.getElementById('lessonSelect').innerHTML = LESSONS.map((l, i) => `<option value="${i}">${i + 1}. ${esc(l.title)}${done.has(i) ? '  ✓' : ''}</option>`).join('');
+  document.getElementById('lessonSelect').value = lessonIdx;
+  document.querySelectorAll('.rail button').forEach(b => b.setAttribute('aria-current', +b.dataset.i === lessonIdx ? 'true' : 'false'));
+  const n = done.size;
+  document.getElementById('progText').textContent = `${n} of ${LESSONS.length} done`;
+  document.getElementById('progBar').style.width = (n / LESSONS.length * 100) + '%';
+}
+
+function renderNotes(){
+  const l = LESSONS[lessonIdx];
+  document.getElementById('eyebrow').textContent = `Lesson ${lessonIdx + 1} of ${LESSONS.length} · ${l.group}`;
+  document.getElementById('title').textContent = l.title;
+  document.getElementById('summary').textContent = l.summary;
+  document.getElementById('prevBtn').disabled = lessonIdx === 0;
+  document.getElementById('nextBtn').disabled = lessonIdx === LESSONS.length - 1;
+  document.getElementById('learn').innerHTML = `<h2>How it works</h2>${l.body.map(p => `<p>${inline(p)}</p>`).join('')}<h3>Key ideas</h3><ul>${l.ideas.map(x => `<li>${inline(x)}</li>`).join('')}</ul>`;
+  document.getElementById('wiring').innerHTML = `<h2>Wiring</h2><h3 style="margin-top:0">You'll need</h3><ul class="kit">${l.kit.map(k => `<li>${esc(k)}</li>`).join('')}</ul>` +
+    (l.wiring.length ? `<table class="wtable"><thead><tr><th scope="col">From</th><th scope="col">To</th></tr></thead><tbody>${l.wiring.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</tbody></table>`
+      : `<p class="empty">Nothing to wire. Plug the board into USB and open the serial monitor.</p>`);
+  const isDone = done.has(lessonIdx);
+  document.getElementById('turn').innerHTML = `<h2>Your turn</h2><p>${inline(l.challenge)}</p><div class="row"><button type="button" class="btn ${isDone ? '' : 'primary'}" id="doneBtn" aria-pressed="${isDone}">${isDone ? '✓ Done' : 'Mark lesson done'}</button>${lessonIdx < LESSONS.length - 1 ? `<button type="button" class="btn" id="nextBtn2">Next lesson →</button>` : ''}</div>`;
+  document.getElementById('doneBtn').onclick = () => { if (done.has(lessonIdx)) done.delete(lessonIdx); else done.add(lessonIdx); store.set('done', [...done]); renderNotes(); buildRail(); };
+  const n2 = document.getElementById('nextBtn2'); if (n2) n2.onclick = () => go(lessonIdx + 1, true);
+}
+
+function savedCode(i){ const all = store.get('code', {}); return all[i]; }
+function saveCode(){ const all = store.get('code', {}); all[lessonIdx] = codeEl.value; store.set('code', all); }
+function openLesson(i, scroll){
+  stop();
+  lessonIdx = Math.max(0, Math.min(LESSONS.length - 1, i));
+  store.set('last', lessonIdx);
+  parts = LESSONS[lessonIdx].parts;
+  resetSim(); buildInputs(); buildStage(); renderNotes(); buildRail();
+  const sc = savedCode(lessonIdx);
+  codeEl.value = sc !== undefined ? sc : LESSONS[lessonIdx].code;
+  document.getElementById('saveMeta').textContent = sc !== undefined && sc !== LESSONS[lessonIdx].code ? 'Your edits' : 'Ctrl + Enter runs';
+  if (scroll) window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  run();
+}
+function go(i, scroll){ const h = '#lesson-' + (i + 1); if (location.hash !== h) location.hash = h; else openLesson(i, scroll); pendingScroll = scroll; }
+let pendingScroll = false;
+function fromHash(){ const m = /^#lesson-(\d+)$/.exec(location.hash); return m ? +m[1] - 1 : null; }
+window.addEventListener('hashchange', () => { const i = fromHash(); if (i !== null && i >= 0 && i < LESSONS.length){ ensureAudio(); openLesson(i, pendingScroll); pendingScroll = false; } });
+
+document.getElementById('rail').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b){ ensureAudio(); go(+b.dataset.i, true); } });
+document.getElementById('lessonSelect').addEventListener('change', e => { ensureAudio(); go(+e.target.value, false); });
+document.getElementById('prevBtn').onclick = () => { ensureAudio(); go(lessonIdx - 1, false); };
+document.getElementById('nextBtn').onclick = () => { ensureAudio(); go(lessonIdx + 1, false); };
+document.getElementById('runBtn').onclick = () => run();
+document.getElementById('stopBtn').onclick = () => stop();
+document.getElementById('clearBtn').onclick = () => clearSerial();
+document.getElementById('resetBtn').onclick = () => { codeEl.value = LESSONS[lessonIdx].code; saveCode(); document.getElementById('saveMeta').textContent = 'Starter code restored'; run(); };
+const soundBtn = document.getElementById('soundBtn');
+function paintSound(){ soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; soundBtn.setAttribute('aria-pressed', soundOn); }
+soundBtn.onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); paintSound(); if (soundOn){ ensureAudio(); if (sim.tone && partOn(q => q.type === 'buzzer' && q.pin === sim.tone.pin) >= 0) audioTone(sim.tone.freq); } else audioOff(); };
+paintSound();
+let saveTimer = null;
+codeEl.addEventListener('input', () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveCode(); document.getElementById('saveMeta').textContent = 'Your edits · press Run'; }, 400); });
+codeEl.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); saveCode(); run(); return; }
+  if (e.key === 'Tab' && !e.shiftKey){ e.preventDefault(); const a = codeEl.selectionStart, b = codeEl.selectionEnd; codeEl.setRangeText('  ', a, b, 'end'); codeEl.dispatchEvent(new Event('input')); }
+});
+document.addEventListener('pointerdown', () => ensureAudio(), { once: true });
+
+let lastTall = null;
+new ResizeObserver(() => { const tall = document.getElementById('stageWrap').clientWidth < 560; if (tall !== lastTall){ lastTall = tall; if (parts) buildStage(); } }).observe(document.getElementById('stageWrap'));
+
+const startIdx = fromHash() ?? store.get('last', 0);
+lastTall = document.getElementById('stageWrap').clientWidth < 560;
+openLesson(Math.max(0, Math.min(LESSONS.length - 1, startIdx || 0)), false);
+requestAnimationFrame(frame);
+
+window.__pinbypin = { LESSONS, transpile, openLesson, sim, serialLines: () => serialLines, status: () => statusEl.dataset.s };
+})();
+</script>
+</body>
+</html>
