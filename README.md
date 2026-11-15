@@ -13,3 +13,7 @@ Live site: https://nagagamoga-star.github.io/arduino-lessons/
 The whole site is one file, `index.html`. Open it directly or serve it with GitHub Pages.
 
 The simulator runs a beginner-sized subset of Arduino C++, so timing is approximate. Check each part's datasheet before wiring real hardware.
+
+## Licence
+
+MIT, copyright 2026 Naga Gamoga. See [LICENSE](LICENSE).
